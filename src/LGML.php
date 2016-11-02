@@ -1,4 +1,5 @@
 <?php
+
 namespace LWB\LGMLParser;
 use hafriedlander\Peg\Parser\Basic;
 
@@ -269,57 +270,119 @@ function match_Spaces ($stack = array()) {
 }
 
 
-/* Quoted:		q:/['"]/ quotedcontents:QuotedContents "$q"  */
+/* Quoted:		q:/["]/ quotedcontents:QuotedContents "$q" | q:/[']/ quotedcontents2:QuotedContents2 "$q" */
 protected $match_Quoted_typestack = array('Quoted');
 function match_Quoted ($stack = array()) {
 	$matchrule = "Quoted"; $result = $this->construct($matchrule, $matchrule, null);
-	$_48 = NULL;
+	$_56 = NULL;
 	do {
-		$stack[] = $result; $result = $this->construct( $matchrule, "q" ); 
-		if (( $subres = $this->rx( '/[\'"]/' ) ) !== FALSE) {
-			$result["text"] .= $subres;
-			$subres = $result; $result = array_pop($stack);
-			$this->store( $result, $subres, 'q' );
+		$res_45 = $result;
+		$pos_45 = $this->pos;
+		$_49 = NULL;
+		do {
+			$stack[] = $result; $result = $this->construct( $matchrule, "q" ); 
+			if (( $subres = $this->rx( '/["]/' ) ) !== FALSE) {
+				$result["text"] .= $subres;
+				$subres = $result; $result = array_pop($stack);
+				$this->store( $result, $subres, 'q' );
+			}
+			else {
+				$result = array_pop($stack);
+				$_49 = FALSE; break;
+			}
+			$matcher = 'match_'.'QuotedContents'; $key = $matcher; $pos = $this->pos;
+			$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
+			if ($subres !== FALSE) {
+				$this->store( $result, $subres, "quotedcontents" );
+			}
+			else { $_49 = FALSE; break; }
+			if (( $subres = $this->literal( ''.$this->expression($result, $stack, 'q').'' ) ) !== FALSE) { $result["text"] .= $subres; }
+			else { $_49 = FALSE; break; }
+			$_49 = TRUE; break;
 		}
-		else {
-			$result = array_pop($stack);
-			$_48 = FALSE; break;
+		while(0);
+		if( $_49 === TRUE ) { $_56 = TRUE; break; }
+		$result = $res_45;
+		$this->pos = $pos_45;
+		$_54 = NULL;
+		do {
+			$stack[] = $result; $result = $this->construct( $matchrule, "q" ); 
+			if (( $subres = $this->rx( '/[\']/' ) ) !== FALSE) {
+				$result["text"] .= $subres;
+				$subres = $result; $result = array_pop($stack);
+				$this->store( $result, $subres, 'q' );
+			}
+			else {
+				$result = array_pop($stack);
+				$_54 = FALSE; break;
+			}
+			$matcher = 'match_'.'QuotedContents2'; $key = $matcher; $pos = $this->pos;
+			$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
+			if ($subres !== FALSE) {
+				$this->store( $result, $subres, "quotedcontents2" );
+			}
+			else { $_54 = FALSE; break; }
+			if (( $subres = $this->literal( ''.$this->expression($result, $stack, 'q').'' ) ) !== FALSE) { $result["text"] .= $subres; }
+			else { $_54 = FALSE; break; }
+			$_54 = TRUE; break;
 		}
-		$matcher = 'match_'.'QuotedContents'; $key = $matcher; $pos = $this->pos;
-		$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
-		if ($subres !== FALSE) {
-			$this->store( $result, $subres, "quotedcontents" );
-		}
-		else { $_48 = FALSE; break; }
-		if (( $subres = $this->literal( ''.$this->expression($result, $stack, 'q').'' ) ) !== FALSE) { $result["text"] .= $subres; }
-		else { $_48 = FALSE; break; }
-		$_48 = TRUE; break;
+		while(0);
+		if( $_54 === TRUE ) { $_56 = TRUE; break; }
+		$result = $res_45;
+		$this->pos = $pos_45;
+		$_56 = FALSE; break;
 	}
 	while(0);
-	if( $_48 === TRUE ) { return $this->finalise($result); }
-	if( $_48 === FALSE) { return FALSE; }
+	if( $_56 === TRUE ) { return $this->finalise($result); }
+	if( $_56 === FALSE) { return FALSE; }
 }
 
 
-/* QuotedContents:	( /[^${parent.q}]|(?:\\${parent.q})/ )*  */
+/* QuotedContents:	( /[^"]|(?:\\")/ )*  */
 protected $match_QuotedContents_typestack = array('QuotedContents');
 function match_QuotedContents ($stack = array()) {
 	$matchrule = "QuotedContents"; $result = $this->construct($matchrule, $matchrule, null);
 	while (true) {
-		$res_52 = $result;
-		$pos_52 = $this->pos;
-		$_51 = NULL;
+		$res_60 = $result;
+		$pos_60 = $this->pos;
+		$_59 = NULL;
 		do {
-			if (( $subres = $this->rx( '/[^${parent.q}]|(?:\\\\${parent.q})/' ) ) !== FALSE) { $result["text"] .= $subres; }
-			else { $_51 = FALSE; break; }
-			$_51 = TRUE; break;
+			if (( $subres = $this->rx( '/[^"]|(?:\\\\")/' ) ) !== FALSE) { $result["text"] .= $subres; }
+			else { $_59 = FALSE; break; }
+			$_59 = TRUE; break;
 		}
 		while(0);
-		if( $_51 === FALSE) {
-			$result = $res_52;
-			$this->pos = $pos_52;
-			unset( $res_52 );
-			unset( $pos_52 );
+		if( $_59 === FALSE) {
+			$result = $res_60;
+			$this->pos = $pos_60;
+			unset( $res_60 );
+			unset( $pos_60 );
+			break;
+		}
+	}
+	return $this->finalise($result);
+}
+
+
+/* QuotedContents2:( /[^']|(?:\\')/ )*  */
+protected $match_QuotedContents2_typestack = array('QuotedContents2');
+function match_QuotedContents2 ($stack = array()) {
+	$matchrule = "QuotedContents2"; $result = $this->construct($matchrule, $matchrule, null);
+	while (true) {
+		$res_63 = $result;
+		$pos_63 = $this->pos;
+		$_62 = NULL;
+		do {
+			if (( $subres = $this->rx( '/[^\']|(?:\\\\\')/' ) ) !== FALSE) { $result["text"] .= $subres; }
+			else { $_62 = FALSE; break; }
+			$_62 = TRUE; break;
+		}
+		while(0);
+		if( $_62 === FALSE) {
+			$result = $res_63;
+			$this->pos = $pos_63;
+			unset( $res_63 );
+			unset( $pos_63 );
 			break;
 		}
 	}
@@ -331,14 +394,14 @@ function match_QuotedContents ($stack = array()) {
 protected $match_IndentedDot_typestack = array('IndentedDot');
 function match_IndentedDot ($stack = array()) {
 	$matchrule = "IndentedDot"; $result = $this->construct($matchrule, $matchrule, null);
-	$_55 = NULL;
+	$_66 = NULL;
 	do {
 		$matcher = 'match_'.'Spaces'; $key = $matcher; $pos = $this->pos;
 		$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
 		if ($subres !== FALSE) {
 			$this->store( $result, $subres, "indent" );
 		}
-		else { $_55 = FALSE; break; }
+		else { $_66 = FALSE; break; }
 		$stack[] = $result; $result = $this->construct( $matchrule, "orphandot" ); 
 		if (( $subres = $this->rx( '/\.\s* /' ) ) !== FALSE) {
 			$result["text"] .= $subres;
@@ -347,13 +410,13 @@ function match_IndentedDot ($stack = array()) {
 		}
 		else {
 			$result = array_pop($stack);
-			$_55 = FALSE; break;
+			$_66 = FALSE; break;
 		}
-		$_55 = TRUE; break;
+		$_66 = TRUE; break;
 	}
 	while(0);
-	if( $_55 === TRUE ) { return $this->finalise($result); }
-	if( $_55 === FALSE) { return FALSE; }
+	if( $_66 === TRUE ) { return $this->finalise($result); }
+	if( $_66 === FALSE) { return FALSE; }
 }
 
 

@@ -15,7 +15,7 @@ class Tree extends Tree\Basic
 			if ($arr === null)
 				return 1;
 			if (isset($arr['quoted']))
-				return $arr['quoted']['quotedcontents']['text'];
+				return array_key_exists('quotedcontents', $arr['quoted']) ? $arr['quoted']['quotedcontents']['text'] : $arr['quoted']['quotedcontents2']['text'];
 			return $arr['simple']['text'];
 		}
 		
