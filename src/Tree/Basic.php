@@ -27,7 +27,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 
 	function current()
 	{
-		return new Tree($this->tree['inner'][$this->real]);
+		return new Basic($this->tree['inner'][$this->real]);
 	}
 
 	function key()
@@ -109,7 +109,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		if (is_int($offset))
 		{
 			if (!$this->filter)
-				return new Tree($this->tree['inner'][$offset]);
+				return new Basic($this->tree['inner'][$offset]);
 			
 			$cnt = -1;
 			// var_dump($this->tree['element'],$this->filter);
