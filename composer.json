@@ -1,0 +1,15 @@
+{
+    "name": "lastwhitebird/lgml-parser",
+    "description": "Configuration parser custom indented config file format (like YAML, python etc.)",
+    "type": "library",
+    "license": "LGPL-2.1",
+    "require": {
+        "php": ">=5.6.0",
+        "hnesk/php-peg":">=1.0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "LWB\\LGMLParser\\": "src/"
+        }
+    }
+}
