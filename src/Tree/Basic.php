@@ -75,7 +75,10 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		if ($offset[0] == "@")
 		{
 			$offset = substr($offset, 1);
-			return isset($this->tree['attributes'][$offset]);
+			if ($offset === false)
+				return true;
+			else
+				return isset($this->tree['attributes'][$offset]);
 		}
 		if (is_int($offset))
 		{
@@ -104,7 +107,12 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 			if ($offset == "@!element")
 				return $this->tree['element'];
 			$offset = substr($offset, 1);
-			return $this->tree['attributes'][$offset];
+			if ($offset === false)
+			{
+				return $this->tree['attributes'];
+			}
+			else
+				return $this->tree['attributes'][$offset];
 		}
 		if (is_int($offset))
 		{

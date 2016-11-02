@@ -390,33 +390,49 @@ function match_QuotedContents2 ($stack = array()) {
 }
 
 
-/* IndentedDot:	indent:Spaces orphandot:/\.\s* /  */
+/* IndentedDot:	indent:Spaces (orphandot:/\.\s?/ trailingtext:/.* /) */
 protected $match_IndentedDot_typestack = array('IndentedDot');
 function match_IndentedDot ($stack = array()) {
 	$matchrule = "IndentedDot"; $result = $this->construct($matchrule, $matchrule, null);
-	$_66 = NULL;
+	$_69 = NULL;
 	do {
 		$matcher = 'match_'.'Spaces'; $key = $matcher; $pos = $this->pos;
 		$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
 		if ($subres !== FALSE) {
 			$this->store( $result, $subres, "indent" );
 		}
-		else { $_66 = FALSE; break; }
-		$stack[] = $result; $result = $this->construct( $matchrule, "orphandot" ); 
-		if (( $subres = $this->rx( '/\.\s* /' ) ) !== FALSE) {
-			$result["text"] .= $subres;
-			$subres = $result; $result = array_pop($stack);
-			$this->store( $result, $subres, 'orphandot' );
+		else { $_69 = FALSE; break; }
+		$_67 = NULL;
+		do {
+			$stack[] = $result; $result = $this->construct( $matchrule, "orphandot" ); 
+			if (( $subres = $this->rx( '/\.\s?/' ) ) !== FALSE) {
+				$result["text"] .= $subres;
+				$subres = $result; $result = array_pop($stack);
+				$this->store( $result, $subres, 'orphandot' );
+			}
+			else {
+				$result = array_pop($stack);
+				$_67 = FALSE; break;
+			}
+			$stack[] = $result; $result = $this->construct( $matchrule, "trailingtext" ); 
+			if (( $subres = $this->rx( '/.* /' ) ) !== FALSE) {
+				$result["text"] .= $subres;
+				$subres = $result; $result = array_pop($stack);
+				$this->store( $result, $subres, 'trailingtext' );
+			}
+			else {
+				$result = array_pop($stack);
+				$_67 = FALSE; break;
+			}
+			$_67 = TRUE; break;
 		}
-		else {
-			$result = array_pop($stack);
-			$_66 = FALSE; break;
-		}
-		$_66 = TRUE; break;
+		while(0);
+		if( $_67 === FALSE) { $_69 = FALSE; break; }
+		$_69 = TRUE; break;
 	}
 	while(0);
-	if( $_66 === TRUE ) { return $this->finalise($result); }
-	if( $_66 === FALSE) { return FALSE; }
+	if( $_69 === TRUE ) { return $this->finalise($result); }
+	if( $_69 === FALSE) { return FALSE; }
 }
 
 
