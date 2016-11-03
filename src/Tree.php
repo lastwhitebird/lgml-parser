@@ -6,7 +6,36 @@ use \LWB\LGMLParser\LGML as LGML;
 
 class Tree extends Tree\Basic
 {
+	private $_tabs;
 
+	function getTabs()
+	{
+		return $this->_tabs;
+	}
+
+	function setTabs($newvalue)
+	{
+		$this->_tabs = $newvalue;
+	}
+
+	static function normalizeTabs($string)
+	{
+		$count = 0;
+		$chars = 0;
+		for ($i = 0; $i < strlen($string); $i++, $chars++)
+		{
+			if ($string[$i] == "\t")
+				$count = (floor($count / 4) + 1) * 4;
+			else 
+				if ($string[$i] == " ")
+					$count++;
+				else
+					break;
+		}
+		return str_repeat(' ', $count) . substr($string, $chars);
+	}
+	
+	// serialize methods
 	public function __toString()
 	{
 		return Tree::render(0, $this);
@@ -54,10 +83,10 @@ class Tree extends Tree\Basic
 			{
 				$result .= str_repeat(' ', $level) . $element['@!element'];
 				foreach ($element['@'] as $key => $val)
-					$result .= ", " . Tree::quoteright1($key) . " " . Tree::quoteright2($val);
-				if (count($element) == 1 && $element[0]['@!element'] == '!text' && strpos($element[0]['@#text'],"\n")===false)
+					$result .= ", " . Tree::quoteright1($key) . (is_null($val) ? "" : " " . Tree::quoteright2($val));
+				if (count($element) == 1 && $element[0]['@!element'] == '!text' && strpos($element[0]['@#text'], "\n") === false)
 				{
-					$result .= ". ".$element[0]['@#text']."\n";
+					$result .= ". " . $element[0]['@#text'] . "\n";
 				}
 				else
 				{
@@ -68,14 +97,66 @@ class Tree extends Tree\Basic
 		}
 		return $result;
 	}
-	// factory method
-	public static function factory($filename)
+
+	public function toXML($filename, $quote_function = false, $quote_attribute_function = false)
+	{
+		$writer = new \XMLWriter();
+		$writer->openMemory();
+		$writer->setIndentString("    ");
+		$writer->setIndent(true);
+		$writer->startDocument('1.0', 'UTF-8', 'yes');
+		Tree::renderXML($writer, $this, $quote_function, $quote_attribute_function);
+		$writer->endDocument();
+		return $writer->outputMemory();
+	}
+
+	private static function renderXML($writer, $tree, $quote_function = false, $quote_attribute_function = false)
+	{
+		foreach ($tree as $element)
+		{
+			if ($element['@!element'] == '!text')
+				$writer->text($element["@#text"]);
+			else
+			{
+				$elname = $element['@!element'];
+				if ($quote_function)
+					$elname = $quote_function($elname);
+				$writer->startElement($elname);
+				foreach ($element['@'] as $key => $val)
+				{
+					if ($quote_attribute_function)
+						$key = $quote_attribute_function($key);
+					$writer->writeAttribute($key, is_null($val) ? $key : $val);
+				}
+				Tree::renderXML($writer, $element, $quote_function, $quote_attribute_function);
+				$writer->endElement();
+			}
+		}
+	}
+
+	public static function toJSON($string)
+	{
+		return json_encode($this->tree);
+	}
+	
+	// factory methods
+	public static function factoryFromJSON($string)
+	{
+		return new Tree(json_decode($string));
+	}
+
+	public static function factoryFromFile($filename)
+	{
+		return Tree::factoryFromString(file_get_contents($filename));
+	}
+
+	public static function factoryFromString($string)
 	{
 
 		function parse_literal($arr)
 		{
 			if ($arr === null)
-				return 1;
+				return null;
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? str_replace('\\"', '"', $arr['quoted']['quotedcontents']['text']) : str_replace("\\'", "'", $arr['quoted']['quotedcontents2']['text']);
 			return $arr['simple']['text'];
@@ -84,8 +165,10 @@ class Tree extends Tree\Basic
 		$preparsed = [];
 		$dot = false;
 		// prepare lines
-		foreach (preg_split("/[\r\n]+/", file_get_contents($filename)) as $n => $line)
+		foreach (preg_split("/[\r\n]+/", $string) as $line)
 		{
+			$line = Tree::normalizeTabs($line);
+			echo $line."\n";
 			if ($dot !== false)
 			{
 				if (preg_match('/(^\s{' . ($dot + 1) . ',' . ($dot + 2) . '})/', $line, $ext))

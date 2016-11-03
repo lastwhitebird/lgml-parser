@@ -2,8 +2,6 @@
 
 namespace LWB\LGMLParser\Tree;
 
-use \LWB\LGMLParser\LGML as LGML;
-
 class Basic implements \Iterator, \ArrayAccess, \Countable
 {
 	var $tree = null;
