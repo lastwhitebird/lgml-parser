@@ -32,7 +32,10 @@ class Tree extends Tree\Basic
 				else
 					break;
 		}
-		return str_repeat(' ', $count) . substr($string, $chars);
+		return [
+				$count, 
+				substr($string, $chars) 
+		];
 	}
 	
 	// serialize methods
@@ -167,13 +170,13 @@ class Tree extends Tree\Basic
 		// prepare lines
 		foreach (preg_split("/[\r\n]+/", $string) as $line)
 		{
-			$line = Tree::normalizeTabs($line);
-			echo $line."\n";
+			list($indent, $line) = Tree::normalizeTabs($line);
+			
 			if ($dot !== false)
 			{
-				if (preg_match('/(^\s{' . ($dot + 1) . ',' . ($dot + 2) . '})/', $line, $ext))
+				if ($indent > $dot + 1)
 				{
-					$line = substr($line, strlen($ext[1]));
+					$line = str_repeat(' ', $indent - $dot - 2) . $line;
 					$dot_inner[] = $line;
 					continue;
 				}
@@ -190,7 +193,7 @@ class Tree extends Tree\Basic
 			$LGML = new LGML($line);
 			if ($dot === false && ($tree = $LGML->match_IndentedDot()))
 			{
-				$dot = strlen($tree['indent']['text']);
+				$dot = $indent;
 				$dot_inner = [
 						$tree['trailingtext']['text'] 
 				];
@@ -202,7 +205,7 @@ class Tree extends Tree\Basic
 				continue;
 			
 			$res = [
-					'indent' => strlen($tree['indent']['text']), 
+					'indent' =>  $indent, 
 					'trailingtext' => @$tree['trailingtext']['text'], 
 					'trailingcolon' => @$tree['trailingcolon']['text'], 
 					'adefs' => [], 
