@@ -6,16 +6,16 @@ use \LWB\LGMLParser\LGML as LGML;
 
 class Tree extends Tree\Basic
 {
-	private $_tabs;
+	private static $_tabs = 4;
 
-	function getTabs()
+	static function getTabs()
 	{
-		return $this->_tabs;
+		return Tree::$_tabs;
 	}
 
-	function setTabs($newvalue)
+	static function setTabs($newvalue)
 	{
-		$this->_tabs = $newvalue;
+		Tree::$_tabs = $newvalue;
 	}
 
 	static function normalizeTabs($string)
@@ -25,7 +25,7 @@ class Tree extends Tree\Basic
 		for ($i = 0; $i < strlen($string); $i++, $chars++)
 		{
 			if ($string[$i] == "\t")
-				$count = (floor($count / 4) + 1) * 4;
+				$count = (floor($count / Tree::$_tabs) + 1) * Tree::$_tabs;
 			else 
 				if ($string[$i] == " ")
 					$count++;
