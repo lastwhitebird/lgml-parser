@@ -18,7 +18,7 @@ class Tree extends Tree\Basic
 		$this->_tabs = $newvalue;
 	}
 
-	function normalizeTabs($string)
+	private function normalizeTabs($string)
 	{
 		$count = 0;
 		$chars = 0;
@@ -141,7 +141,7 @@ class Tree extends Tree\Basic
 		}
 	}
 
-	public static function toJSON($string)
+	public function toJSON()
 	{
 		return json_encode($this->tree);
 	}
