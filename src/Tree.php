@@ -6,26 +6,26 @@ use \LWB\LGMLParser\LGML as LGML;
 
 class Tree extends Tree\Basic
 {
-	private static $_tabs = 4;
+	private $_tabs = 4;
 
-	static function getTabs()
+	function getTabs()
 	{
-		return Tree::$_tabs;
+		return $this->_tabs;
 	}
 
-	static function setTabs($newvalue)
+	function setTabs($newvalue)
 	{
-		Tree::$_tabs = $newvalue;
+		$this->_tabs = $newvalue;
 	}
 
-	static function normalizeTabs($string)
+	function normalizeTabs($string)
 	{
 		$count = 0;
 		$chars = 0;
 		for ($i = 0; $i < strlen($string); $i++, $chars++)
 		{
 			if ($string[$i] == "\t")
-				$count = (floor($count / Tree::$_tabs) + 1) * Tree::$_tabs;
+				$count = (floor($count / $this->_tabs) + 1) * $this->_tabs;
 			else 
 				if ($string[$i] == " ")
 					$count++;
@@ -61,12 +61,14 @@ class Tree extends Tree\Basic
 		$num = strpos($string, "'") === false ? 0 : 1;
 		$num += strpos($string, '"') === false ? 0 : 2;
 		$num += strpos($string, ' ') === false ? 0 : 4;
+		$re1='/\\\\([\\\\"\\\\])/';
+		$re2='/\\\\([\\\'\\\\])/';
 		switch ($code[$num])
 		{
 			case '"':
-				return '"' . str_replace('"', '\\"', $string) . '"';
+				return '"' . preg_replace('/(["\\\\])/', '\\\\$1', $string) . '"';
 			case "'":
-				return "'" . str_replace("'", "\\'", $string) . "'";
+				return "'" . preg_replace('/([\'\\\\])/', '\\\\$1', $string) . "'";
 			default:
 				return $string;
 		}
@@ -86,7 +88,9 @@ class Tree extends Tree\Basic
 			{
 				$result .= str_repeat(' ', $level) . $element['@!element'];
 				foreach ($element['@'] as $key => $val)
+				{
 					$result .= ", " . Tree::quoteright1($key) . (is_null($val) ? "" : " " . Tree::quoteright2($val));
+				}
 				if (count($element) == 1 && $element[0]['@!element'] == '!text' && strpos($element[0]['@#text'], "\n") === false)
 				{
 					$result .= ". " . $element[0]['@#text'] . "\n";
@@ -145,7 +149,9 @@ class Tree extends Tree\Basic
 	// factory methods
 	public static function factoryFromJSON($string)
 	{
-		return new Tree(json_decode($string));
+		$tree_object = new Tree();
+		$tree_object->tree = json_decode($string);
+		return $tree_object;
 	}
 
 	public static function factoryFromFile($filename)
@@ -155,13 +161,22 @@ class Tree extends Tree\Basic
 
 	public static function factoryFromString($string)
 	{
+		$tree_object = new Tree();
 
 		function parse_literal($arr)
 		{
 			if ($arr === null)
 				return null;
+			$re1='/\\\\([\\\\"\\\\])/';
+			$re2='/\\\\([\\\'\\\\])/';
+				// @formatter:off
 			if (isset($arr['quoted']))
-				return array_key_exists('quotedcontents', $arr['quoted']) ? str_replace('\\"', '"', $arr['quoted']['quotedcontents']['text']) : str_replace("\\'", "'", $arr['quoted']['quotedcontents2']['text']);
+				return array_key_exists('quotedcontents', $arr['quoted']) ? 
+					preg_replace($re1, '\\1',$arr['quoted']['quotedcontents']['text'])
+					: 
+					preg_replace($re2, '\\1',$arr['quoted']['quotedcontents2']['text'])
+					;
+			// @formatter:on
 			return $arr['simple']['text'];
 		}
 		
@@ -170,7 +185,7 @@ class Tree extends Tree\Basic
 		// prepare lines
 		foreach (preg_split("/[\r\n]+/", $string) as $line)
 		{
-			list($indent, $line) = Tree::normalizeTabs($line);
+			list($indent, $line) = $tree_object->normalizeTabs($line);
 			
 			if ($dot !== false)
 			{
@@ -205,7 +220,7 @@ class Tree extends Tree\Basic
 				continue;
 			
 			$res = [
-					'indent' =>  $indent, 
+					'indent' => $indent, 
 					'trailingtext' => @$tree['trailingtext']['text'], 
 					'trailingcolon' => @$tree['trailingcolon']['text'], 
 					'adefs' => [], 
@@ -293,6 +308,7 @@ class Tree extends Tree\Basic
 						'inner' => [] 
 				];
 		}
-		return new Tree($tree);
+		$tree_object->tree = $tree;
+		return $tree_object;
 	}
 }

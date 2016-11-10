@@ -338,7 +338,7 @@ function match_Quoted ($stack = array()) {
 }
 
 
-/* QuotedContents:	( /[^"]|(?:\\")/ )*  */
+/* QuotedContents:	( /\\.|[^"]/ )* */
 protected $match_QuotedContents_typestack = array('QuotedContents');
 function match_QuotedContents ($stack = array()) {
 	$matchrule = "QuotedContents"; $result = $this->construct($matchrule, $matchrule, null);
@@ -347,7 +347,7 @@ function match_QuotedContents ($stack = array()) {
 		$pos_60 = $this->pos;
 		$_59 = NULL;
 		do {
-			if (( $subres = $this->rx( '/[^"]|(?:\\\\")/' ) ) !== FALSE) { $result["text"] .= $subres; }
+			if (( $subres = $this->rx( '/\\\\.|[^"]/' ) ) !== FALSE) { $result["text"] .= $subres; }
 			else { $_59 = FALSE; break; }
 			$_59 = TRUE; break;
 		}
@@ -364,7 +364,7 @@ function match_QuotedContents ($stack = array()) {
 }
 
 
-/* QuotedContents2:( /[^']|(?:\\')/ )*  */
+/* QuotedContents2:( /\\.|[^']/ )* */
 protected $match_QuotedContents2_typestack = array('QuotedContents2');
 function match_QuotedContents2 ($stack = array()) {
 	$matchrule = "QuotedContents2"; $result = $this->construct($matchrule, $matchrule, null);
@@ -373,7 +373,7 @@ function match_QuotedContents2 ($stack = array()) {
 		$pos_63 = $this->pos;
 		$_62 = NULL;
 		do {
-			if (( $subres = $this->rx( '/[^\']|(?:\\\\\')/' ) ) !== FALSE) { $result["text"] .= $subres; }
+			if (( $subres = $this->rx( '/\\\\.|[^\']/' ) ) !== FALSE) { $result["text"] .= $subres; }
 			else { $_62 = FALSE; break; }
 			$_62 = TRUE; break;
 		}

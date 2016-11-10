@@ -9,10 +9,24 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	var $position = 0;
 	var $real = 0;
 
-	public function __construct(&$tree, $filter = false)
+	public function __construct()
 	{
-		$this->tree = &$tree;
-		$this->filter = $filter;
+		$this->tree = [
+				'element' => '', 
+				'attributes' => [], 
+				'inner' => [] 
+		];
+	}
+
+	public static function factoryFromTree(&$tree, $filter = false)
+	{
+		$class = get_called_class();
+		$the = new $class();
+		if (count($tree) == 1)
+			$tree = &$tree[0];
+		$the->tree = &$tree;
+		$the->filter = $filter;
+		return $the;
 	}
 	
 	// iteration
@@ -25,7 +39,13 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 
 	function current()
 	{
-		return new Basic($this->tree['inner'][$this->real]);
+		$class = get_class($this);
+		return call_user_func([
+				$class, 
+				'factoryFromTree' 
+		], [
+				&$this->tree['inner'][$this->real] 
+		]);
 	}
 
 	function key()
@@ -69,7 +89,6 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	// access
 	public function offsetExists($offset)
 	{
-		// var_dump(__METHOD__,$this->tree['element'],$this->filter,$offset);
 		if ($offset[0] == "@")
 		{
 			$offset = substr($offset, 1);
@@ -99,7 +118,6 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 
 	public function offsetGet($offset)
 	{
-		// var_dump(__METHOD__,$this->tree['element'],$this->filter,$offset);
 		if ($offset[0] == "@")
 		{
 			if ($offset == "@!element")
@@ -112,24 +130,44 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 			else
 				return $this->tree['attributes'][$offset];
 		}
+		$class = get_class($this);
 		if (is_int($offset))
 		{
 			if (!$this->filter)
-				return new Basic($this->tree['inner'][$offset]);
-			
+			{
+				$inner = &$this->tree['inner'];
+				$real = $inner[$offset];
+				return call_user_func([
+						$class, 
+						'factoryFromTree' 
+				], [
+						&$this->tree['inner'][$offset]
+				]);
+			}
 			$cnt = -1;
-			// var_dump($this->tree['element'],$this->filter);
 			foreach ($this->tree['inner'] as $el)
 				if ($el['element'] == $this->filter)
 				{
 					++$cnt;
 					if ($cnt == $offset)
-						return new Basic($el);
+					{
+						return call_user_func([
+								$class, 
+								'factoryFromTree' 
+						], [
+								&$el 
+						]);
+					}
 				}
 			return null;
 		}
 		else
-			return new Basic($this->tree, $offset);
+			return call_user_func([
+					$class, 
+					'factoryFromTree' 
+			], [
+					&$this->tree 
+			], $offset);
 	}
 
 	public function offsetSet($offset, $value)
