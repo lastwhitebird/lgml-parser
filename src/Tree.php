@@ -31,19 +31,49 @@ class Tree extends Tree\Configurable
 	// serialize methods
 	public function __toString()
 	{
-		return Tree::render($this, 0, $this->getOption('line_ending'));
+		return Tree::render($this, $this->getOption('line_ending'));
 	}
 
-	private static function render($tree, $level = 0, $le = "\n")
+	private static function checkSingleLineness($tree, $le)
+	{
+		$count = 0;
+		foreach ($tree as $element)
+		{
+			if (count($element) == 0)
+				continue;
+			if ($element['@!element'] == '!text' || count($element['@']))
+				return false;
+			if (count($element) > 1 || $element[0]['@!element'] != '!text' || strpos($element[0]['@#text'], $le) !== false)
+				return false;
+			$count++;
+		}
+		return $count > 0;
+	}
+
+	private static function renderSingleLine($tree, $le, $level)
+	{
+		$results = [];
+		foreach ($tree as $element)
+		{
+			$result = $element['@!element'];
+			if (count($element))
+				$result .= ": " . Tree::quoteProperly0($element[0]['@#text']);
+			$results[] = $result;
+		}
+		return str_repeat(' ', $level) . implode("; ", $results) . $le;
+	}
+
+	private static function render($tree, $le = "\n", $level = 0)
 	{
 		$result = "";
 		foreach ($tree as $element)
 		{
+			$result .= str_repeat(' ', $level);
 			if ($element['@!element'] == '!text')
-				$result .= str_repeat(' ', $level) . ". " . Tree::addIndent($level + 2, $element["@#text"]) . $le;
+				$result .= ". " . Tree::addIndent($level + 2, $element["@#text"]) . $le;
 			else
 			{
-				$result .= str_repeat(' ', $level) . $element['@!element'];
+				$result .= $element['@!element'];
 				foreach ($element['@'] as $key => $val)
 				{
 					$result .= ", " . Tree::quoteProperly1($key) . (is_null($val) ? "" : " " . Tree::quoteProperly2($val));
@@ -54,11 +84,17 @@ class Tree extends Tree\Configurable
 					if (strpos($line, $le) === false)
 						$append = ". " . $line . $le;
 					else
-						$append = ": $le" . Tree::addIndent($level + 4, $line, true) . $le;
+						$append = ": " . $le . Tree::addIndent($level + 4, $line, true) . $le;
 					$result .= $append;
 				}
 				else
-					$result .= $le . Tree::render($element, $level + 4, $le);
+				{
+					$result .= $le;
+					if (!Tree::checkSingleLineness($element, $le))
+						$result .= Tree::render($element, $le, $level + 4);
+					else
+						$result .= Tree::renderSingleLine($element, $le, $level + 4);
+				}
 			}
 		}
 		return $result;
@@ -119,6 +155,7 @@ class Tree extends Tree\Configurable
 			while (($line = fgets($handle)) !== false)
 				yield rtrim($line, "\r\n");
 		fclose($handle);
+		yield "";
 	}
 
 	private static function stringGenerator($string)
@@ -129,6 +166,7 @@ class Tree extends Tree\Configurable
 			$offset = $m[0][1] + strlen($m[0][0]);
 			yield rtrim($m[0][0], "\r\n");
 		}
+		yield "";
 	}
 
 	public function fromFile($filename)
@@ -156,6 +194,46 @@ class Tree extends Tree\Configurable
 		$tree_object = new Tree();
 		$tree_object->setOptions($options);
 		return $tree_object->fromGenerator(Tree::stringGenerator($string));
+	}
+
+	public static function match_Node($line)
+	{
+		$LGML = new LGML($line);
+		return $LGML->match_Node();
+	}
+
+	private static function semicolonGenerator($line)
+	{
+		while ($tree = Tree::match_Node($line))
+		{
+			yield $tree;
+			if (!isset($tree['trailingsemicolon']))
+				break;
+			$line = substr($line, strlen($tree['text']));
+			do
+			{
+				$exit = true;
+				$LGML = new LGML($line);
+				if (($text = $LGML->match_Spaces()) && ($len = strlen($text['text'])))
+				{
+					list($exit, $line) = [
+							false, 
+							substr($line, $len) 
+					];
+					$exit = false;
+					$line = substr($line, $len);
+				}
+				while (strlen($line) && ($line[0] == ';'))
+				{
+					$exit = false;
+					$line = substr($line, 1);
+				}
+			}
+			while (!$exit);
+			$LGML = new LGML($line);
+			if ($LGML->match_OpenCommmentMLine())
+				yield false;
+		}
 	}
 
 	public function fromGenerator($generator)
@@ -196,7 +274,6 @@ class Tree extends Tree\Configurable
 			
 			if ($dot !== false)
 			{
-				// var_dump($dot,$indent,$line);
 				if ($indent > $dot + 1)
 				{
 					$line = str_repeat(' ', $indent - $dot - 2) . $line;
@@ -209,7 +286,6 @@ class Tree extends Tree\Configurable
 							'indent' => $dot, 
 							'text' => implode($le, $dot_inner) 
 					];
-					// var_dump($dot,$dot_inner,$line);
 					$dot = false;
 				}
 			}
@@ -224,43 +300,60 @@ class Tree extends Tree\Configurable
 				continue;
 			}
 			
-			$LGML = new LGML($line);
-			if (!$tree = $LGML->match_Node())
-				continue;
-			
-			$res = [
-					'indent' => $indent, 
-					'trailingtext' => @$tree['trailingtext']['text'], 
-					'trailingcomma' => @$tree['trailingcomma']['text'], 
-					'adefs' => [], 
-					'orphandot' => @$tree['orphandot']['text'] 
-			];
-			$adefs = isset($tree['adef'][0]) ? $tree['adef'] : [
-					$tree['adef'] 
-			];
-			
-			foreach ($adefs as $adef)
-				if (isset($adef['tc']['lm']))
+			foreach (Tree::semicolonGenerator($line) as $tree)
+			{
+				if (!$tree)
 				{
 					$comment = true;
+					break;
 				}
-			
-			foreach ($adefs as $adef)
-			{
-				$res['adefs'][] = [
-						parse_literal($adef['first']), 
-						parse_literal(@$adef['second']) 
+				
+				$res = [
+						'indent' => $indent, 
+						'trailingtext' => @$tree['trailingtext']['text'], 
+						'trailingcomma' => @$tree['trailingcomma']['text'], 
+						'adefs' => [], 
+						'orphandot' => @$tree['orphandot']['text'] 
 				];
-			}
-			$preparsed[] = $res;
-			if (isset($tree['trailingcolon']))
-			{
-				$dot = $indent + 2;
-				$dot_inner = [];
+				
+				$adefs = [
+						$tree['adef'] 
+				];
+				$adefs_next = isset($tree['adefs']['adef']) ? (isset($tree['adefs']['adef'][0]) ? $tree['adefs']['adef'] : [
+						$tree['adefs']['adef'] 
+				]) : [];
+				
+				$adefs = array_merge($adefs, $adefs_next);
+				foreach ($adefs as $adef)
+					if (isset($adef['tc']['lm']))
+					{
+						$comment = true;
+					}
+				
+				foreach ($adefs as $adef)
+				{
+					$res['adefs'][] = [
+							parse_literal($adef['first']), 
+							parse_literal(@$adef['second']) 
+					];
+				}
+				$preparsed[] = $res;
+				if (isset($tree['trailingcolon']))
+				{
+					if (!isset($tree['trailingcolontext']))
+						list($dot, $dot_inner) = [
+								$indent + 2, 
+								[] 
+						];
+					else
+						$preparsed[] = [
+								'indent' => $indent + 1, 
+								'text' => parse_literal($tree['trailingcolontext']) 
+						];
+				}
 			}
 		}
 		
-		// var_dump($preparsed);die();
 		// prepare real tree
 		$tree = Tree::node('!root');
 		$indents = [
@@ -271,7 +364,6 @@ class Tree extends Tree\Configurable
 		
 		foreach ($preparsed as $n => $line)
 		{
-			// var_dump($line);
 			$is_text = isset($line['text']);
 			if (!$awaiting_atts || $is_text)
 			{
@@ -307,7 +399,9 @@ class Tree extends Tree\Configurable
 			$awaiting_atts = isset($line['trailingcomma']) && !isset($line['trailingtext']);
 			
 			if (isset($line['trailingtext']))
+			{
 				$current['inner'][] = Tree::textNode($line['trailingtext']);
+			}
 		}
 		$this->tree = $tree;
 		return $this;
