@@ -40,7 +40,7 @@ class Tree extends Tree\Configurable
 		foreach ($tree as $element)
 		{
 			if ($element['@!element'] == '!text')
-				$result .= str_repeat(' ', $level).". " . Tree::addIndent($level + 2, $element["@#text"]) . "\n";
+				$result .= str_repeat(' ', $level) . ". " . Tree::addIndent($level + 2, $element["@#text"]) . "\n";
 			else
 			{
 				$result .= str_repeat(' ', $level) . $element['@!element'];
@@ -106,27 +106,63 @@ class Tree extends Tree\Configurable
 	}
 	
 	// factory methods
+	public function fromJSON($string)
+	{
+		$this->tree = json_decode($string);
+		return $this;
+	}
+
+	private static function fileGenerator($filename)
+	{
+		$handle = fopen($filename, "r");
+		if ($handle)
+			while (($line = fgets($handle)) !== false)
+				yield rtrim($line,"\r\n");
+		fclose($handle);
+	}
+
+	private static function stringGenerator($string)
+	{
+		$offset = 0;
+		while (preg_match('/.*?(?:\r\n|\n)/', $string, $m, PREG_OFFSET_CAPTURE, $offset))
+		{
+			$offset = $m[0][1] + strlen($m[0][0]);
+			yield rtrim($m[0][0],"\r\n");
+		}
+	}
+
+	public function fromFile($filename)
+	{
+		$this->fromString(file_get_contents($filename));
+		return $this;
+	}
+
 	public static function factoryFromJSON($string)
 	{
 		$tree_object = new Tree();
-		$tree_object->tree = json_decode($string);
-		return $tree_object;
+		return $tree_object->fromJSON($string);
 	}
 
 	public static function factoryFromFile($filename)
 	{
-		return Tree::factoryFromString(file_get_contents($filename));
+		$tree_object = new Tree();
+		return $tree_object->fromGenerator(Tree::fileGenerator($filename));
 	}
 
 	public static function factoryFromString($string)
 	{
 		$tree_object = new Tree();
+		return $tree_object->fromGenerator(Tree::stringGenerator($string));
+	}
+
+	public function fromGenerator($generator)
+	{
 
 		function parse_literal($arr)
 		{
 			if ($arr === null)
 				return null;
-			// @formatter:off
+				// @formatter:off
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? 
 					Tree::unEscape1($arr['quoted']['quotedcontents']['text'])
@@ -141,19 +177,18 @@ class Tree extends Tree\Configurable
 		$dot = false;
 		$comment = false;
 		// prepare lines
-		foreach (preg_split("/[\r\n]+/", $string) as $line)
+		foreach ($generator as $line)
 		{
 			if ($comment)
 			{
 				$LGML = new LGML($line);
-				$tree = $LGML->match_ClosingComment();
-				if (!$tree)
+				if (!$tree = $LGML->match_ClosingComment())
 					continue;
 				$len = strlen($tree['text']);
 				$line = str_repeat(' ', $len) . substr($line, $len);
 				$comment = false;
 			}
-			list($indent, $line) = $tree_object->normalizeTabs($line);
+			list($indent, $line) = $this->normalizeTabs($line);
 			
 			if ($dot !== false)
 			{
@@ -270,7 +305,7 @@ class Tree extends Tree\Configurable
 			if (isset($line['trailingtext']))
 				$current['inner'][] = Tree::textNode($line['trailingtext']);
 		}
-		$tree_object->tree = $tree;
-		return $tree_object;
+		$this->tree = $tree;
+		return $this;
 	}
 }
