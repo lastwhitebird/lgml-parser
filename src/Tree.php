@@ -4,28 +4,18 @@ namespace LWB\LGMLParser;
 
 use \LWB\LGMLParser\LGML as LGML;
 
-class Tree extends Tree\Basic
+class Tree extends Tree\Configurable
 {
-	private $_tabs = 4;
-
-	function getTabs()
-	{
-		return $this->_tabs;
-	}
-
-	function setTabs($newvalue)
-	{
-		$this->_tabs = $newvalue;
-	}
 
 	private function normalizeTabs($string)
 	{
 		$count = 0;
 		$chars = 0;
+		$tabs = $this->options['tabs'];
 		for ($i = 0; $i < strlen($string); $i++, $chars++)
 		{
 			if ($string[$i] == "\t")
-				$count = (floor($count / $this->_tabs) + 1) * $this->_tabs;
+				$count = (floor($count / $tabs) + 1) * $tabs;
 			else 
 				if ($string[$i] == " ")
 					$count++;
@@ -56,13 +46,15 @@ class Tree extends Tree\Basic
 
 	private static function quoteright($string, $code)
 	{
-		if (strpos($string, ",") !== false)
+		if (strpos($string, ",") !== false || strpos($string, ".") !== false || strpos($string, ":") !== false)
 			$code = str_replace(' ', '"', $code);
+		if (!strlen($string))
+			return '""';
 		$num = strpos($string, "'") === false ? 0 : 1;
 		$num += strpos($string, '"') === false ? 0 : 2;
 		$num += strpos($string, ' ') === false ? 0 : 4;
-		$re1='/\\\\([\\\\"\\\\])/';
-		$re2='/\\\\([\\\'\\\\])/';
+		$re1 = '/\\\\([\\\\"\\\\])/';
+		$re2 = '/\\\\([\\\'\\\\])/';
 		switch ($code[$num])
 		{
 			case '"':
@@ -91,9 +83,15 @@ class Tree extends Tree\Basic
 				{
 					$result .= ", " . Tree::quoteright1($key) . (is_null($val) ? "" : " " . Tree::quoteright2($val));
 				}
-				if (count($element) == 1 && $element[0]['@!element'] == '!text' && strpos($element[0]['@#text'], "\n") === false)
+				if (count($element) == 1 && $element[0]['@!element'] == '!text')
 				{
-					$result .= ". " . $element[0]['@#text'] . "\n";
+					$append = "\n";
+					if (strpos($element[0]['@#text'], "\n") === false)
+						$append = ". " . $element[0]['@#text'] . "\n";
+					else
+						$append = ": \n" . str_repeat(' ', $level + 4) . implode("\n" . str_repeat(' ', $level + 4), explode("\n", $element[0]["@#text"])) . "\n";
+						// var_dump($append);
+					$result .= $append;
 				}
 				else
 				{
@@ -143,7 +141,7 @@ class Tree extends Tree\Basic
 
 	public function toJSON()
 	{
-		return json_encode($this->tree);
+		return json_encode($this->tree, JSON_PRETTY_PRINT);
 	}
 	
 	// factory methods
@@ -159,6 +157,26 @@ class Tree extends Tree\Basic
 		return Tree::factoryFromString(file_get_contents($filename));
 	}
 
+	public static function textNode($text)
+	{
+		return [
+				'element' => '!text', 
+				'attributes' => [
+						'#text' => $text 
+				], 
+				'inner' => [] 
+		];
+	}
+
+	public static function node($element, $attributes = [])
+	{
+		return [
+				'element' => $element, 
+				'attributes' => $attributes, 
+				'inner' => [] 
+		];
+	}
+
 	public static function factoryFromString($string)
 	{
 		$tree_object = new Tree();
@@ -167,9 +185,9 @@ class Tree extends Tree\Basic
 		{
 			if ($arr === null)
 				return null;
-			$re1='/\\\\([\\\\"\\\\])/';
-			$re2='/\\\\([\\\'\\\\])/';
-				// @formatter:off
+			$re1 = '/\\\\([\\\\"\\\\])/';
+			$re2 = '/\\\\([\\\'\\\\])/';
+			// @formatter:off
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? 
 					preg_replace($re1, '\\1',$arr['quoted']['quotedcontents']['text'])
@@ -182,13 +200,25 @@ class Tree extends Tree\Basic
 		
 		$preparsed = [];
 		$dot = false;
+		$comment = false;
 		// prepare lines
 		foreach (preg_split("/[\r\n]+/", $string) as $line)
 		{
+			if ($comment)
+			{
+				$LGML = new LGML($line);
+				$tree = $LGML->match_ClosingComment();
+				if (!$tree)
+					continue;
+				$len=strlen($tree['text']);
+				$line=str_repeat(' ',$len).substr($line,$len);
+				$comment=false;
+			}
 			list($indent, $line) = $tree_object->normalizeTabs($line);
 			
 			if ($dot !== false)
 			{
+				// var_dump($dot,$indent,$line);
 				if ($indent > $dot + 1)
 				{
 					$line = str_repeat(' ', $indent - $dot - 2) . $line;
@@ -201,6 +231,7 @@ class Tree extends Tree\Basic
 							'indent' => $dot, 
 							'text' => implode("\n", $dot_inner) 
 					];
+					// var_dump($dot,$dot_inner,$line);
 					$dot = false;
 				}
 			}
@@ -219,16 +250,24 @@ class Tree extends Tree\Basic
 			if (!$tree = $LGML->match_Node())
 				continue;
 			
+			
 			$res = [
 					'indent' => $indent, 
 					'trailingtext' => @$tree['trailingtext']['text'], 
-					'trailingcolon' => @$tree['trailingcolon']['text'], 
+					'trailingcomma' => @$tree['trailingcomma']['text'], 
 					'adefs' => [], 
 					'orphandot' => @$tree['orphandot']['text'] 
 			];
 			$adefs = isset($tree['adef'][0]) ? $tree['adef'] : [
 					$tree['adef'] 
 			];
+
+			foreach ($adefs as $adef)
+				if (isset($adef['tc']['lm']))
+				{
+					$comment = true;
+				}
+				
 			foreach ($adefs as $adef)
 			{
 				$res['adefs'][] = [
@@ -237,15 +276,16 @@ class Tree extends Tree\Basic
 				];
 			}
 			$preparsed[] = $res;
+			if (isset($tree['trailingcolon']))
+			{
+				$dot = $indent + 2;
+				$dot_inner = [];
+			}
 		}
 		
 		// var_dump($preparsed);die();
 		// prepare real tree
-		$tree = [
-				'element' => '!root', 
-				'attributes' => [], 
-				'inner' => [] 
-		];
+		$tree = Tree::node('!root');
 		$indents = [
 				-1 => &$tree 
 		];
@@ -254,34 +294,26 @@ class Tree extends Tree\Basic
 		
 		foreach ($preparsed as $n => $line)
 		{
+			// var_dump($line);
 			$is_text = isset($line['text']);
 			if (!$awaiting_atts || $is_text)
 			{
 				$i = $line['indent'];
-				foreach (array_keys($indents) as $k)
-					if ($k >= $i)
-						unset($indents[$k]);
+				$indents = array_filter($indents, function ($v) use ($i)
+				{
+					return ($v < $i);
+				}, ARRAY_FILTER_USE_KEY);
 				$last = max(array_keys($indents));
 				$current = &$indents[$last];
 				
 				if ($is_text)
 				{
-					$node = [
-							'element' => '!text', 
-							'attributes' => [
-									'#text' => $line['text'] 
-							], 
-							'inner' => [] 
-					];
+					$node = Tree::textNode($line['text']);
 				}
 				else
 				{
 					$el = array_shift($line['adefs']);
-					$node = [
-							'element' => $el[0], 
-							'attributes' => [], 
-							'inner' => [] 
-					];
+					$node = Tree::node($el[0]);
 					foreach ($line['adefs'] as $adef)
 						$node['attributes'][$adef[0]] = $adef[1];
 				}
@@ -291,22 +323,14 @@ class Tree extends Tree\Basic
 			}
 			else
 			{
-				$last = max(array_keys($indents));
-				$current = &$indents[$last];
 				foreach ($line['adefs'] as $adef)
 					$current['attributes'][$adef[0]] = $adef[1];
 			}
 			
-			$awaiting_atts = isset($line['trailingcolon']) && !isset($line['trailingtext']);
+			$awaiting_atts = isset($line['trailingcomma']) && !isset($line['trailingtext']);
 			
 			if (isset($line['trailingtext']))
-				$current['inner'][] = [
-						'element' => '!text', 
-						'attributes' => [
-								'#text' => $line['trailingtext'] 
-						], 
-						'inner' => [] 
-				];
+				$current['inner'][] = Tree::textNode($line['trailingtext']);
 		}
 		$tree_object->tree = $tree;
 		return $tree_object;
