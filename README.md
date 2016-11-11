@@ -83,7 +83,7 @@ class Configurable extends Basic
 {
 	/* yes, it's public. you may use it directly */
 	public $options;
-	/* all the method are self-documenting */
+	/* all the methods are self-documenting */
 	public function __construct(array $options = []) {}
 	public function setOption($name, $value) {}
 	/* this 2 methods return $this */
