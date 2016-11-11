@@ -31,34 +31,34 @@ class Tree extends Tree\Configurable
 	// serialize methods
 	public function __toString()
 	{
-		return Tree::render(0, $this);
+		return Tree::render($this, 0, $this->getOption('line_ending'));
 	}
 
-	private static function render($level = 0, $tree)
+	private static function render($tree, $level = 0, $le = "\n")
 	{
 		$result = "";
 		foreach ($tree as $element)
 		{
 			if ($element['@!element'] == '!text')
-				$result .= str_repeat(' ', $level) . ". " . Tree::addIndent($level + 2, $element["@#text"]) . "\n";
+				$result .= str_repeat(' ', $level) . ". " . Tree::addIndent($level + 2, $element["@#text"]) . $le;
 			else
 			{
 				$result .= str_repeat(' ', $level) . $element['@!element'];
 				foreach ($element['@'] as $key => $val)
 				{
-					$result .= ", " . Tree::quoteright1($key) . (is_null($val) ? "" : " " . Tree::quoteright2($val));
+					$result .= ", " . Tree::quoteProperly1($key) . (is_null($val) ? "" : " " . Tree::quoteProperly2($val));
 				}
 				if (count($element) == 1 && $element[0]['@!element'] == '!text')
 				{
 					$line = $element[0]['@#text'];
-					if (strpos($line, "\n") === false)
-						$append = ". " . $line . "\n";
+					if (strpos($line, $le) === false)
+						$append = ". " . $line . $le;
 					else
-						$append = ": \n" . Tree::addIndent($level + 4, $line, true) . "\n";
+						$append = ": $le" . Tree::addIndent($level + 4, $line, true) . $le;
 					$result .= $append;
 				}
 				else
-					$result .= "\n" . Tree::render($level + 4, $element);
+					$result .= $le . Tree::render($element, $level + 4, $le);
 			}
 		}
 		return $result;
@@ -117,7 +117,7 @@ class Tree extends Tree\Configurable
 		$handle = fopen($filename, "r");
 		if ($handle)
 			while (($line = fgets($handle)) !== false)
-				yield rtrim($line,"\r\n");
+				yield rtrim($line, "\r\n");
 		fclose($handle);
 	}
 
@@ -127,7 +127,7 @@ class Tree extends Tree\Configurable
 		while (preg_match('/.*?(?:\r\n|\n)/', $string, $m, PREG_OFFSET_CAPTURE, $offset))
 		{
 			$offset = $m[0][1] + strlen($m[0][0]);
-			yield rtrim($m[0][0],"\r\n");
+			yield rtrim($m[0][0], "\r\n");
 		}
 	}
 
@@ -137,21 +137,24 @@ class Tree extends Tree\Configurable
 		return $this;
 	}
 
-	public static function factoryFromJSON($string)
+	public static function factoryFromJSON($string, array $options = [])
 	{
 		$tree_object = new Tree();
+		$tree_object->setOptions($options);
 		return $tree_object->fromJSON($string);
 	}
 
-	public static function factoryFromFile($filename)
+	public static function factoryFromFile($filename, array $options = [])
 	{
 		$tree_object = new Tree();
+		$tree_object->setOptions($options);
 		return $tree_object->fromGenerator(Tree::fileGenerator($filename));
 	}
 
-	public static function factoryFromString($string)
+	public static function factoryFromString($string, array $options = [])
 	{
 		$tree_object = new Tree();
+		$tree_object->setOptions($options);
 		return $tree_object->fromGenerator(Tree::stringGenerator($string));
 	}
 
@@ -165,9 +168,9 @@ class Tree extends Tree\Configurable
 				// @formatter:off
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? 
-					Tree::unEscape1($arr['quoted']['quotedcontents']['text'])
+					Tree::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
 					: 
-					Tree::unEscape2($arr['quoted']['quotedcontents2']['text'])
+					Tree::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
 					;
 			// @formatter:on
 			return $arr['simple']['text'];
@@ -177,6 +180,7 @@ class Tree extends Tree\Configurable
 		$dot = false;
 		$comment = false;
 		// prepare lines
+		$le = $this->getOption('line_ending');
 		foreach ($generator as $line)
 		{
 			if ($comment)
@@ -203,7 +207,7 @@ class Tree extends Tree\Configurable
 				{
 					$preparsed[] = [
 							'indent' => $dot, 
-							'text' => implode("\n", $dot_inner) 
+							'text' => implode($le, $dot_inner) 
 					];
 					// var_dump($dot,$dot_inner,$line);
 					$dot = false;

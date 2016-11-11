@@ -5,33 +5,33 @@ namespace LWB\LGMLParser\Tree;
 trait Quotes
 {
 
-	public static function unEscape1($str)
+	public static function unEscapeDoubleQuotes($string)
 	{
-		return preg_replace('/\\\\([\\\\"\\\\])/', '\\1', $str);
+		return preg_replace('/\\\\([\\\\"\\\\])/', '\\1', $string);
 	}
 
-	public static function unEscape2($str)
+	public static function unEscapeSingleQuotes($string)
 	{
-		return preg_replace('/\\\\([\\\'\\\\])/', '\\1', $str);
+		return preg_replace('/\\\\([\\\'\\\\])/', '\\1', $string);
 	}
 
-	private static function quoteright1($string)
+	public static function quoteProperly1($string)
 	{
 		return call_user_func([
 				__CLASS__, 
-				'quoteright' 
+				'quoteProperly' 
 		], $string, ' "\'"""\'"');
 	}
 
-	private static function quoteright2($string)
+	public static function quoteProperly2($string)
 	{
 		return call_user_func([
 				__CLASS__, 
-				'quoteright' 
+				'quoteProperly' 
 		], $string, ' "\'" "\'"');
 	}
 
-	private static function quoteright($string, $code)
+	private static function quoteProperly($string, $code)
 	{
 		if (strpbrk($string, ",.:") !== false)
 			$code = str_replace(' ', '"', $code);
@@ -53,14 +53,14 @@ trait Quotes
 		}
 	}
 
-	private static function addIndent($level, $string, $first = false)
+	public static function addIndent($level, $string, $first = false)
 	{
 		if ($first === true)
 			$first = $level;
 		return ($first ? str_repeat(' ', $first) : "") . implode("\n" . str_repeat(' ', $level), explode("\n", $string));
 	}
 
-	private function normalizeTabs($string)
+	public function normalizeTabs($string)
 	{
 		$count = 0;
 		$chars = 0;

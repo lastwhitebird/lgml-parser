@@ -4,10 +4,10 @@ namespace LWB\LGMLParser\Tree;
 
 class Basic implements \Iterator, \ArrayAccess, \Countable
 {
-	var $tree = null;
-	var $filter = false;
-	var $position = 0;
-	var $real = 0;
+	public $tree = null;
+	public $filter = false;
+	private $position = 0;
+	private $real = 0;
 
 	public function __construct()
 	{
@@ -18,7 +18,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		];
 	}
 
-	public static function factoryFromTree(&$tree, $filter = false)
+	public static function factoryFromTree(array &$tree, $filter = false)
 	{
 		$class = get_called_class();
 		$the = new $class();
@@ -141,7 +141,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 						$class, 
 						'factoryFromTree' 
 				], [
-						&$this->tree['inner'][$offset]
+						&$this->tree['inner'][$offset] 
 				]);
 			}
 			$cnt = -1;
