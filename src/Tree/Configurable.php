@@ -10,7 +10,7 @@ class Configurable extends Basic
 
 	public function __construct($options = [])
 	{
-		$this->options = $this->options + $options;
+		$this->options = $options + $this->options;
 		parent::__construct();
 	}
 }

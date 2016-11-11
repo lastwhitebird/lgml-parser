@@ -6,25 +6,25 @@ use \LWB\LGMLParser\LGML as LGML;
 
 class Tree extends Tree\Configurable
 {
+	use Tree\Quotes;
 
-	private function normalizeTabs($string)
+	public static function textNode($text)
 	{
-		$count = 0;
-		$chars = 0;
-		$tabs = $this->options['tabs'];
-		for ($i = 0; $i < strlen($string); $i++, $chars++)
-		{
-			if ($string[$i] == "\t")
-				$count = (floor($count / $tabs) + 1) * $tabs;
-			else 
-				if ($string[$i] == " ")
-					$count++;
-				else
-					break;
-		}
 		return [
-				$count, 
-				substr($string, $chars) 
+				'element' => '!text', 
+				'attributes' => [
+						'#text' => $text 
+				], 
+				'inner' => [] 
+		];
+	}
+
+	public static function node($element, $attributes = [])
+	{
+		return [
+				'element' => $element, 
+				'attributes' => $attributes, 
+				'inner' => [] 
 		];
 	}
 	
@@ -34,48 +34,13 @@ class Tree extends Tree\Configurable
 		return Tree::render(0, $this);
 	}
 
-	private static function quoteright1($string)
-	{
-		return Tree::quoteright($string, ' "\'"""\'"');
-	}
-
-	private static function quoteright2($string)
-	{
-		return Tree::quoteright($string, ' "\'" "\'"');
-	}
-
-	private static function quoteright($string, $code)
-	{
-		if (strpos($string, ",") !== false || strpos($string, ".") !== false || strpos($string, ":") !== false)
-			$code = str_replace(' ', '"', $code);
-		if (!strlen($string))
-			return '""';
-		$num = strpos($string, "'") === false ? 0 : 1;
-		$num += strpos($string, '"') === false ? 0 : 2;
-		$num += strpos($string, ' ') === false ? 0 : 4;
-		$re1 = '/\\\\([\\\\"\\\\])/';
-		$re2 = '/\\\\([\\\'\\\\])/';
-		switch ($code[$num])
-		{
-			case '"':
-				return '"' . preg_replace('/(["\\\\])/', '\\\\$1', $string) . '"';
-			case "'":
-				return "'" . preg_replace('/([\'\\\\])/', '\\\\$1', $string) . "'";
-			default:
-				return $string;
-		}
-	}
-
 	private static function render($level = 0, $tree)
 	{
 		$result = "";
 		foreach ($tree as $element)
 		{
 			if ($element['@!element'] == '!text')
-			{
-				$text = implode("\n" . str_repeat(' ', $level + 2), explode("\n", $element["@#text"]));
-				$result .= str_repeat(' ', $level) . ". " . $text . "\n";
-			}
+				$result .= str_repeat(' ', $level).". " . Tree::addIndent($level + 2, $element["@#text"]) . "\n";
 			else
 			{
 				$result .= str_repeat(' ', $level) . $element['@!element'];
@@ -85,19 +50,15 @@ class Tree extends Tree\Configurable
 				}
 				if (count($element) == 1 && $element[0]['@!element'] == '!text')
 				{
-					$append = "\n";
-					if (strpos($element[0]['@#text'], "\n") === false)
-						$append = ". " . $element[0]['@#text'] . "\n";
+					$line = $element[0]['@#text'];
+					if (strpos($line, "\n") === false)
+						$append = ". " . $line . "\n";
 					else
-						$append = ": \n" . str_repeat(' ', $level + 4) . implode("\n" . str_repeat(' ', $level + 4), explode("\n", $element[0]["@#text"])) . "\n";
-						// var_dump($append);
+						$append = ": \n" . Tree::addIndent($level + 4, $line, true) . "\n";
 					$result .= $append;
 				}
 				else
-				{
-					$result .= "\n";
-					$result .= Tree::render($level + 4, $element);
-				}
+					$result .= "\n" . Tree::render($level + 4, $element);
 			}
 		}
 		return $result;
@@ -157,26 +118,6 @@ class Tree extends Tree\Configurable
 		return Tree::factoryFromString(file_get_contents($filename));
 	}
 
-	public static function textNode($text)
-	{
-		return [
-				'element' => '!text', 
-				'attributes' => [
-						'#text' => $text 
-				], 
-				'inner' => [] 
-		];
-	}
-
-	public static function node($element, $attributes = [])
-	{
-		return [
-				'element' => $element, 
-				'attributes' => $attributes, 
-				'inner' => [] 
-		];
-	}
-
 	public static function factoryFromString($string)
 	{
 		$tree_object = new Tree();
@@ -185,14 +126,12 @@ class Tree extends Tree\Configurable
 		{
 			if ($arr === null)
 				return null;
-			$re1 = '/\\\\([\\\\"\\\\])/';
-			$re2 = '/\\\\([\\\'\\\\])/';
 			// @formatter:off
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? 
-					preg_replace($re1, '\\1',$arr['quoted']['quotedcontents']['text'])
+					Tree::unEscape1($arr['quoted']['quotedcontents']['text'])
 					: 
-					preg_replace($re2, '\\1',$arr['quoted']['quotedcontents2']['text'])
+					Tree::unEscape2($arr['quoted']['quotedcontents2']['text'])
 					;
 			// @formatter:on
 			return $arr['simple']['text'];
@@ -210,9 +149,9 @@ class Tree extends Tree\Configurable
 				$tree = $LGML->match_ClosingComment();
 				if (!$tree)
 					continue;
-				$len=strlen($tree['text']);
-				$line=str_repeat(' ',$len).substr($line,$len);
-				$comment=false;
+				$len = strlen($tree['text']);
+				$line = str_repeat(' ', $len) . substr($line, $len);
+				$comment = false;
 			}
 			list($indent, $line) = $tree_object->normalizeTabs($line);
 			
@@ -250,7 +189,6 @@ class Tree extends Tree\Configurable
 			if (!$tree = $LGML->match_Node())
 				continue;
 			
-			
 			$res = [
 					'indent' => $indent, 
 					'trailingtext' => @$tree['trailingtext']['text'], 
@@ -261,13 +199,13 @@ class Tree extends Tree\Configurable
 			$adefs = isset($tree['adef'][0]) ? $tree['adef'] : [
 					$tree['adef'] 
 			];
-
+			
 			foreach ($adefs as $adef)
 				if (isset($adef['tc']['lm']))
 				{
 					$comment = true;
 				}
-				
+			
 			foreach ($adefs as $adef)
 			{
 				$res['adefs'][] = [
