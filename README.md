@@ -10,7 +10,7 @@ PHP:
 		$tree = Tree::factoryFromFile('tree.lgml');
 		//serialization
 		file_put_contents('tree.json', $tree->toJSON());
-		//
+		//accessing tree nodes
 		if (isset($tree['domains'][0]))
 		foreach ($tree['domains'][0] as $domain)
 			$domains[$domain['@!element']] = $domain['@'];
