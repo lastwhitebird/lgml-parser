@@ -57,7 +57,7 @@ class Tree extends Tree\Configurable
 		{
 			$result = $element['@!element'];
 			if (count($element))
-				$result .= ": " . Tree::quoteProperly0($element[0]['@#text']);
+				$result .= ": " . Tree::quoteProperly2($element[0]['@#text']);
 			$results[] = $result;
 		}
 		return str_repeat(' ', $level) . implode("; ", $results) . $le;
@@ -220,8 +220,6 @@ class Tree extends Tree\Configurable
 							false, 
 							substr($line, $len) 
 					];
-					$exit = false;
-					$line = substr($line, $len);
 				}
 				while (strlen($line) && ($line[0] == ';'))
 				{
@@ -232,7 +230,9 @@ class Tree extends Tree\Configurable
 			while (!$exit);
 			$LGML = new LGML($line);
 			if ($LGML->match_OpenCommmentMLine())
+			{
 				yield false;
+			}
 		}
 	}
 
@@ -264,7 +264,7 @@ class Tree extends Tree\Configurable
 			if ($comment)
 			{
 				$LGML = new LGML($line);
-				if (!$tree = $LGML->match_ClosingComment())
+				if (!$tree = $LGML->match_ClosingCommentMLine())
 					continue;
 				$len = strlen($tree['text']);
 				$line = str_repeat(' ', $len) . substr($line, $len);

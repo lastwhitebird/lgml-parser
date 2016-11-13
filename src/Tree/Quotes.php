@@ -15,14 +15,6 @@ trait Quotes
 		return preg_replace('/\\\\([\\\'\\\\])/', '\\1', $string);
 	}
 
-	private static function quoteProperly0($string)
-	{
-		return call_user_func([
-				__CLASS__,
-				'quoteProperly'
-		], $string, '""\'"""\'"');
-	}
-	
 	public static function quoteProperly1($string)
 	{
 		return call_user_func([
