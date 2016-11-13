@@ -178,22 +178,28 @@ class Tree extends Tree\Configurable
 	public static function factoryFromJSON($string, array $options = [])
 	{
 		$tree_object = new Tree();
-		$tree_object->setOptions($options);
-		return $tree_object->fromJSON($string);
+		$tree_object->saveOptions()->setOptions($options);
+		$return = $tree_object->fromJSON($string);
+		$tree_object->restoreOptions();
+		return $return;
 	}
 
 	public static function factoryFromFile($filename, array $options = [])
 	{
 		$tree_object = new Tree();
-		$tree_object->setOptions($options);
-		return $tree_object->fromGenerator(Tree::fileGenerator($filename));
+		$tree_object->saveOptions()->setOptions($options);
+		$return = $tree_object->fromGenerator(Tree::fileGenerator($filename));
+		$tree_object->restoreOptions();
+		return $return;
 	}
 
 	public static function factoryFromString($string, array $options = [])
 	{
 		$tree_object = new Tree();
-		$tree_object->setOptions($options);
-		return $tree_object->fromGenerator(Tree::stringGenerator($string));
+		$tree_object->saveOptions()->setOptions($options);
+		$return = $tree_object->fromGenerator(Tree::stringGenerator($string));
+		$tree_object->restoreOptions();
+		return $return;
 	}
 
 	public static function match_Node($line)
