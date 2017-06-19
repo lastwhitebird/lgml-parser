@@ -27,7 +27,7 @@ class Tree extends Tree\Configurable
 				'inner' => [] 
 		];
 	}
-	
+
 	// serialize methods
 	public function __toString()
 	{
@@ -76,7 +76,7 @@ class Tree extends Tree\Configurable
 				$result .= $element['@!element'];
 				foreach ($element['@'] as $key => $val)
 				{
-					$result .= ", " . Tree::quoteProperly1($key) . (is_null($val) ? "" : " " . Tree::quoteProperly2($val));
+					$result .= ", " . Tree::quoteProperly1($key) . (is_object($val) ? "" : " " . Tree::quoteProperly2($val));
 				}
 				if (count($element) == 1 && $element[0]['@!element'] == '!text')
 				{
@@ -140,7 +140,7 @@ class Tree extends Tree\Configurable
 	{
 		return json_encode($this->tree, JSON_PRETTY_PRINT);
 	}
-	
+
 	// factory methods
 	public function fromJSON($string)
 	{
@@ -249,7 +249,7 @@ class Tree extends Tree\Configurable
 		{
 			if ($arr === null)
 				return null;
-				// @formatter:off
+			// @formatter:off
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? 
 					Tree::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
@@ -367,6 +367,13 @@ class Tree extends Tree\Configurable
 		];
 		$awaiting_atts = false;
 		$current = &$tree;
+
+		function push_attributes(&$atts, $adefs)
+		{
+			if (!isset($adefs[1]))
+				$adefs[1] = new \stdClass;
+			$atts[$adefs[0]] = $adefs[1];
+		}
 		
 		foreach ($preparsed as $n => $line)
 		{
@@ -390,7 +397,8 @@ class Tree extends Tree\Configurable
 					$el = array_shift($line['adefs']);
 					$node = Tree::node($el[0]);
 					foreach ($line['adefs'] as $adef)
-						$node['attributes'][$adef[0]] = $adef[1];
+						push_attributes($node['attributes'],$adef);
+
 				}
 				$current['inner'][] = $node;
 				$indents[$i] = &$current['inner'][count($current['inner']) - 1];
@@ -399,7 +407,7 @@ class Tree extends Tree\Configurable
 			else
 			{
 				foreach ($line['adefs'] as $adef)
-					$current['attributes'][$adef[0]] = $adef[1];
+					push_attributes($current['attributes'],$adef);
 			}
 			
 			$awaiting_atts = isset($line['trailingcomma']) && !isset($line['trailingtext']);

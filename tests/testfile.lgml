@@ -1,5 +1,25 @@
 element
 element.
-element-a attribute
-element-a attribute.
-element-a attribute non-empty
+element-a, attribute
+element-a,    attribute .
+element-a, attribute non-empty
+element-a, attribute    "non-empty".
+element-t: imma textnodeh!;element-t: imma textnodeh!;
+element-nested
+	element-t: imma textnodeh!;element-t: imma textnodeh!;
+element-nested
+	/*element-t: imma textnodeh!;element-t: imma textnodeh!;*/
+element-nested
+	element-t: imma textnodeh!;element-t/*: imma textnodeh!;
+	qweqw
+	qwe*/
+element-nested
+	element-t: imma single-line comment//textnodeh!;element-t/*: imma textnodeh!;
+element-nested
+	element-t: imma textnodeh!;element-t: imma textnodeh!;
+"nested element with a complex name",
+	"and so with attributes" yes, "it is"
+/*"you don't see me"
+	element-t: imma textnodeh!;element-t: imma textnodeh!;
+	*/
+	
