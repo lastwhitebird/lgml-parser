@@ -100,7 +100,47 @@ class Tree extends Tree\Configurable
 		return $result;
 	}
 
-	public function toXML($filename, $quote_function = false, $quote_attribute_function = false)
+	public function fromXML($filename)
+	{
+		$xml = simplexml_load_file($filename);
+		$stub = [
+				'element' => '', 
+				'attributes' => [], 
+				'inner' => [] 
+		];
+		$tree = $stub;
+		$xml_traverse = function ($xml, &$tree) use ($stub, &$xml_traverse)
+		{
+			$tree['element'] = $xml->getName();
+			foreach ($xml->attributes() as $attribute => $value)
+			{
+				$tree['attributes'][$attribute] = $value->__toString();
+			}
+			
+			foreach ($xml->children() as $node)
+			{
+				$nodestub = $stub;
+				$xml_traverse($node, $nodestub);
+				$tree['inner'][] = $nodestub;
+			}
+			$text = $xml->__toString();
+			$text = trim($text);
+			if ($text !== "")
+				$tree['inner'][] = Tree::textNode($text);
+		};
+		$xml_traverse($xml, $tree);
+		$tree = [
+				'element' => '', 
+				'attributes' => [], 
+				'inner' => [
+						$tree 
+				] 
+		];
+		// var_dump($xml);
+		return Tree::factoryFromTree($tree);
+	}
+
+	public function toXML($quote_function = false, $quote_attribute_function = false)
 	{
 		$writer = new \XMLWriter();
 		$writer->openMemory();
@@ -123,12 +163,20 @@ class Tree extends Tree\Configurable
 				$elname = $element['@!element'];
 				if ($quote_function)
 					$elname = $quote_function($elname);
-				$writer->startElement($elname);
+				try
+				{
+					$writer->startElement($elname);
+				}
+				catch (Exception $e)
+				{
+					echo "element failed: $elname\n";
+					die();
+				}
 				foreach ($element['@'] as $key => $val)
 				{
 					if ($quote_attribute_function)
 						$key = $quote_attribute_function($key);
-					$writer->writeAttribute($key, is_null($val) ? $key : $val);
+					$writer->writeAttribute($key, is_object($val) ? $key : $val);
 				}
 				Tree::renderXML($writer, $element, $quote_function, $quote_attribute_function);
 				$writer->endElement();
@@ -173,6 +221,15 @@ class Tree extends Tree\Configurable
 	{
 		$this->fromString(file_get_contents($filename));
 		return $this;
+	}
+
+	public static function factoryFromXML($string, array $options = [])
+	{
+		$tree_object = new Tree();
+		$tree_object->saveOptions()->setOptions($options);
+		$return = $tree_object->fromXML($string);
+		$tree_object->restoreOptions();
+		return $return;
 	}
 
 	public static function factoryFromJSON($string, array $options = [])
@@ -371,7 +428,7 @@ class Tree extends Tree\Configurable
 		function push_attributes(&$atts, $adefs)
 		{
 			if (!isset($adefs[1]))
-				$adefs[1] = new \stdClass;
+				$adefs[1] = new \stdClass();
 			$atts[$adefs[0]] = $adefs[1];
 		}
 		
@@ -397,8 +454,7 @@ class Tree extends Tree\Configurable
 					$el = array_shift($line['adefs']);
 					$node = Tree::node($el[0]);
 					foreach ($line['adefs'] as $adef)
-						push_attributes($node['attributes'],$adef);
-
+						push_attributes($node['attributes'], $adef);
 				}
 				$current['inner'][] = $node;
 				$indents[$i] = &$current['inner'][count($current['inner']) - 1];
@@ -407,7 +463,7 @@ class Tree extends Tree\Configurable
 			else
 			{
 				foreach ($line['adefs'] as $adef)
-					push_attributes($current['attributes'],$adef);
+					push_attributes($current['attributes'], $adef);
 			}
 			
 			$awaiting_atts = isset($line['trailingcomma']) && !isset($line['trailingtext']);

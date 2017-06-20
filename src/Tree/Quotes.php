@@ -33,7 +33,7 @@ trait Quotes
 
 	private static function quoteProperly($string, $code)
 	{
-		if (strpbrk($string, ",.:") !== false)
+		if (strpbrk($string, ",.:;") !== false)
 			$code = str_replace(' ', '"', $code);
 		if (!strlen($string))
 			return '""';
