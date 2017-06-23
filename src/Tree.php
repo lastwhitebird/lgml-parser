@@ -55,7 +55,7 @@ class Tree extends Tree\Configurable
 		$results = [];
 		foreach ($tree as $element)
 		{
-			$result = $element['@!element'];
+			$result = Tree::quoteProperly1($element['@!element']);
 			if (count($element))
 				$result .= ": " . Tree::quoteProperly2($element[0]['@#text']);
 			$results[] = $result;
@@ -73,7 +73,7 @@ class Tree extends Tree\Configurable
 				$result .= ". " . Tree::addIndent($level + 2, $element["@#text"]) . $le;
 			else
 			{
-				$result .= $element['@!element'];
+				$result .= Tree::quoteProperly1($element['@!element']);
 				foreach ($element['@'] as $key => $val)
 				{
 					$result .= ", " . Tree::quoteProperly1($key) . (is_object($val) ? "" : " " . Tree::quoteProperly2($val));
@@ -102,33 +102,62 @@ class Tree extends Tree\Configurable
 
 	public function fromXML($filename)
 	{
-		$xml = simplexml_load_file($filename);
-		$stub = [
-				'element' => '', 
-				'attributes' => [], 
-				'inner' => [] 
-		];
-		$tree = $stub;
-		$xml_traverse = function ($xml, &$tree) use ($stub, &$xml_traverse)
+		$xml_traverse = function ($node, &$tree) use (&$xml_traverse)
 		{
-			$tree['element'] = $xml->getName();
-			foreach ($xml->attributes() as $attribute => $value)
+			// var_dump($node->nodeType );
+			switch ($node->nodeType)
 			{
-				$tree['attributes'][$attribute] = $value->__toString();
+				case XML_CDATA_SECTION_NODE:
+				case XML_TEXT_NODE:
+					$text = trim($node->textContent);
+					if (strlen($text))
+					{
+						$tree['inner'][] = Tree::textNode($text);
+						// var_dump($tree);
+					}
+					break;
+				case XML_ELEMENT_NODE:
+				case XML_DOCUMENT_NODE:
+					if ($node->nodeType == XML_ELEMENT_NODE)
+						$tree['element'] = $node->tagName;
+					if ($node->childNodes)
+						for ($i = 0, $m = $node->childNodes->length,$fallbacknode=null; $i < $m; $i++)
+						{
+							$childnode=$node->childNodes->item($i);
+							$nodestub = Tree::node('');
+							$xml_traverse($childnode, $nodestub);
+							if (!$nodestub['element'])
+							{
+								//if (!$childnode->childNodes /*|| !$node->childNodes->item($i)->childNodes->length*/)
+								{
+									//if (!$fallbacknode) continue;
+									//var_dump($childnode->nodeType);
+									$xml_traverse($childnode, $tree);
+									continue;
+								}
+								//$nodestub = Tree::node('');
+								//$xml_traverse($childnode->childNodes[0], $nodestub);
+								
+ 							}
+							$tree['inner'][] = $nodestub;
+							$fallbacknode=&$tree['inner'][count($tree['inner'])-1];
+						}
+					if ($node->attributes && $node->attributes->length)
+					{
+						foreach ($node->attributes as $attrName => $attrNode)
+						{
+							$tree['attributes'][$attrName] = (string) $attrNode->value;
+						}
+					}
+					break;
 			}
-			
-			foreach ($xml->children() as $node)
-			{
-				$nodestub = $stub;
-				$xml_traverse($node, $nodestub);
-				$tree['inner'][] = $nodestub;
-			}
-			$text = $xml->__toString();
-			$text = trim($text);
-			if ($text !== "")
-				$tree['inner'][] = Tree::textNode($text);
 		};
-		$xml_traverse($xml, $tree);
+		
+		$tree = Tree::node('');
+		$doc = new \DOMDocument();
+		$doc->load($filename);
+		$root = $doc->documentElement;
+		$xml_traverse($root, $tree);
 		$tree = [
 				'element' => '', 
 				'attributes' => [], 
@@ -136,7 +165,7 @@ class Tree extends Tree\Configurable
 						$tree 
 				] 
 		];
-		// var_dump($xml);
+		// var_dump($tree);
 		return Tree::factoryFromTree($tree);
 	}
 
@@ -161,6 +190,7 @@ class Tree extends Tree\Configurable
 			else
 			{
 				$elname = $element['@!element'];
+				// var_dump($elname);
 				if ($quote_function)
 					$elname = $quote_function($elname);
 				try
