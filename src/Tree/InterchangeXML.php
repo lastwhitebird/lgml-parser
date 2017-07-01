@@ -5,7 +5,7 @@ namespace LWB\LGMLParser\Tree;
 trait InterchangeXML 
 {
 
-	private static function xml_traverse ($node, &$tree)
+	private static function xml_traverse($node, &$tree)
 	{
 		// var_dump($node->nodeType );
 		switch ($node->nodeType)
@@ -24,38 +24,69 @@ trait InterchangeXML
 			case XML_DOCUMENT_NODE:
 				if ($node->nodeType == XML_ELEMENT_NODE)
 					$tree['element'] = $node->tagName;
-					if ($node->childNodes)
-						for ($i = 0, $m = $node->childNodes->length; $i < $m; $i++)
-						{
-							$childnode = $node->childNodes->item($i);
-							$nodestub = self::node('');
-							self::xml_traverse($childnode, $nodestub);
-							if (!$nodestub['element'])
-								self::xml_traverse($childnode, $tree);
-							else
-								$tree['inner'][] = $nodestub;
-						}
-					if ($node->attributes && $node->attributes->length)
+				if ($node->childNodes)
+					for ($i = 0, $m = $node->childNodes->length; $i < $m; $i++)
 					{
-						foreach ($node->attributes as $attrName => $attrNode)
-						{
-							$tree['attributes'][($attrNode->prefix ? $attrNode->prefix.":" : "").$attrName] = (string) $attrNode->value;
-						}
+						$childnode = $node->childNodes->item($i);
+						$nodestub = self::node('');
+						self::xml_traverse($childnode, $nodestub);
+						if (!$nodestub['element'])
+							self::xml_traverse($childnode, $tree);
+						else
+							$tree['inner'][] = $nodestub;
 					}
-					break;
+				if ($node->attributes && $node->attributes->length)
+				{
+					foreach ($node->attributes as $attrName => $attrNode)
+					{
+						$tree['attributes'][($attrNode->prefix ? $attrNode->prefix . ":" : "") . $attrName] = (string) $attrNode->value;
+					}
+				}
+				break;
 		}
 	}
+
 	public function fromXML($filename)
 	{
-		$tree = self::node('');
-		$doc = new \DOMDocument();
-		$doc->load($filename);
+		$nodes = [];
+		$XMLDecl = null;
+
+		function extract_xmldecl($string)
+		{
+			preg_match('/(<\?.*?\?>)/ism', $string, $ext);
+			return isset($ext[1]) ? $ext[1] : "";
+		}
 		
-		self::xml_traverse($doc->documentElement, $tree);
-		
-		$result = self::node('', [], [
-				$tree 
-		]);
+		$string = file_get_contents($filename);
+		do
+		{
+			$again = false;
+			$tree = self::node('');
+			$doc = new \DOMDocument();
+			try
+			{
+				$doc->loadXML($string);
+			}
+			catch (\ErrorException $e)
+			{
+				$err_msg = $e->getMessage();
+				if (preg_match('/DOMDocument::loadXML\(\): Extra content at the end of the document in Entity, line: (\d+)/', $err_msg, $ext))
+				{
+					$err_line = $ext[1];
+					preg_match('/(?:.*?\n){' . ($err_line - 1) . '}/ism', $string, $ext);
+					$cut = strlen($ext[0]);
+					$temp_string = (!is_null($XMLDecl) ? $XMLDecl : "") . $ext[0];
+					//var_dump($temp_string);
+					$doc->loadXML($temp_string);
+					$XMLDecl = !is_null($XMLDecl) ? $XMLDecl : extract_xmldecl($string);
+					$again = true;
+					$string = substr($string, $cut);
+				}
+			}
+			self::xml_traverse($doc->documentElement, $tree);
+			$nodes[] = $tree;
+		} while ($again);
+		$result = self::node('', [], $nodes);
 		// var_dump($result);
 		return self::factoryFromTree($result);
 	}
@@ -64,7 +95,7 @@ trait InterchangeXML
 	{
 		$writer = new \XMLWriter();
 		$writer->openMemory();
-		if( $this->getOption('pretty_print'))
+		if ($this->getOption('pretty_print'))
 			$writer->setIndentString("    ");
 		$writer->setIndent(true);
 		$writer->startDocument('1.0', 'UTF-8', 'yes');
