@@ -7,212 +7,10 @@ use \LWB\LGMLParser\LGML as LGML;
 class Tree extends Tree\Configurable
 {
 	use Tree\Quotes;
-
-	public static function textNode($text)
-	{
-		return [
-				'element' => '!text', 
-				'attributes' => [
-						'#text' => $text 
-				], 
-				'inner' => [] 
-		];
-	}
-
-	public static function node($element, $attributes = [])
-	{
-		return [
-				'element' => $element, 
-				'attributes' => $attributes, 
-				'inner' => [] 
-		];
-	}
-
+	use Tree\InterchangeXML;
+	use Tree\InterchangeText;
+	
 	// serialize methods
-	public function __toString()
-	{
-		return Tree::render($this, $this->getOption('line_ending'));
-	}
-
-	private static function checkSingleLineness($tree, $le)
-	{
-		$count = 0;
-		foreach ($tree as $element)
-		{
-			if (count($element) == 0)
-				continue;
-			if ($element['@!element'] == '!text' || count($element['@']))
-				return false;
-			if (count($element) > 1 || $element[0]['@!element'] != '!text' || strpos($element[0]['@#text'], $le) !== false)
-				return false;
-			$count++;
-		}
-		return $count > 0;
-	}
-
-	private static function renderSingleLine($tree, $le, $level)
-	{
-		$results = [];
-		foreach ($tree as $element)
-		{
-			$result = Tree::quoteProperly1($element['@!element']);
-			if (count($element))
-				$result .= ": " . Tree::quoteProperly2($element[0]['@#text']);
-			$results[] = $result;
-		}
-		return str_repeat(' ', $level) . implode("; ", $results) . $le;
-	}
-
-	private static function render($tree, $le = "\n", $level = 0)
-	{
-		$result = "";
-		foreach ($tree as $element)
-		{
-			$result .= str_repeat(' ', $level);
-			if ($element['@!element'] == '!text')
-				$result .= ". " . Tree::addIndent($level + 2, $element["@#text"]) . $le;
-			else
-			{
-				$result .= Tree::quoteProperly1($element['@!element']);
-				foreach ($element['@'] as $key => $val)
-				{
-					$result .= ", " . Tree::quoteProperly1($key) . (is_object($val) ? "" : " " . Tree::quoteProperly2($val));
-				}
-				if (count($element) == 1 && $element[0]['@!element'] == '!text')
-				{
-					$line = $element[0]['@#text'];
-					if (strpos($line, $le) === false)
-						$append = ". " . $line . $le;
-					else
-						$append = ": " . $le . Tree::addIndent($level + 4, $line, true) . $le;
-					$result .= $append;
-				}
-				else
-				{
-					$result .= $le;
-					if (!Tree::checkSingleLineness($element, $le))
-						$result .= Tree::render($element, $le, $level + 4);
-					else
-						$result .= Tree::renderSingleLine($element, $le, $level + 4);
-				}
-			}
-		}
-		return $result;
-	}
-
-	public function fromXML($filename)
-	{
-		$xml_traverse = function ($node, &$tree) use (&$xml_traverse)
-		{
-			// var_dump($node->nodeType );
-			switch ($node->nodeType)
-			{
-				case XML_CDATA_SECTION_NODE:
-				case XML_TEXT_NODE:
-					$text = trim($node->textContent);
-					if (strlen($text))
-					{
-						$tree['inner'][] = Tree::textNode($text);
-						// var_dump($tree);
-					}
-					break;
-				case XML_ELEMENT_NODE:
-				case XML_DOCUMENT_NODE:
-					if ($node->nodeType == XML_ELEMENT_NODE)
-						$tree['element'] = $node->tagName;
-					if ($node->childNodes)
-						for ($i = 0, $m = $node->childNodes->length,$fallbacknode=null; $i < $m; $i++)
-						{
-							$childnode=$node->childNodes->item($i);
-							$nodestub = Tree::node('');
-							$xml_traverse($childnode, $nodestub);
-							if (!$nodestub['element'])
-							{
-								//if (!$childnode->childNodes /*|| !$node->childNodes->item($i)->childNodes->length*/)
-								{
-									//if (!$fallbacknode) continue;
-									//var_dump($childnode->nodeType);
-									$xml_traverse($childnode, $tree);
-									continue;
-								}
-								//$nodestub = Tree::node('');
-								//$xml_traverse($childnode->childNodes[0], $nodestub);
-								
- 							}
-							$tree['inner'][] = $nodestub;
-							$fallbacknode=&$tree['inner'][count($tree['inner'])-1];
-						}
-					if ($node->attributes && $node->attributes->length)
-					{
-						foreach ($node->attributes as $attrName => $attrNode)
-						{
-							$tree['attributes'][$attrName] = (string) $attrNode->value;
-						}
-					}
-					break;
-			}
-		};
-		
-		$tree = Tree::node('');
-		$doc = new \DOMDocument();
-		$doc->load($filename);
-		$root = $doc->documentElement;
-		$xml_traverse($root, $tree);
-		$tree = [
-				'element' => '', 
-				'attributes' => [], 
-				'inner' => [
-						$tree 
-				] 
-		];
-		// var_dump($tree);
-		return Tree::factoryFromTree($tree);
-	}
-
-	public function toXML($quote_function = false, $quote_attribute_function = false)
-	{
-		$writer = new \XMLWriter();
-		$writer->openMemory();
-		$writer->setIndentString("    ");
-		$writer->setIndent(true);
-		$writer->startDocument('1.0', 'UTF-8', 'yes');
-		Tree::renderXML($writer, $this, $quote_function, $quote_attribute_function);
-		$writer->endDocument();
-		return $writer->outputMemory();
-	}
-
-	private static function renderXML($writer, $tree, $quote_function = false, $quote_attribute_function = false)
-	{
-		foreach ($tree as $element)
-		{
-			if ($element['@!element'] == '!text')
-				$writer->text($element["@#text"]);
-			else
-			{
-				$elname = $element['@!element'];
-				// var_dump($elname);
-				if ($quote_function)
-					$elname = $quote_function($elname);
-				try
-				{
-					$writer->startElement($elname);
-				}
-				catch (Exception $e)
-				{
-					echo "element failed: $elname\n";
-					die();
-				}
-				foreach ($element['@'] as $key => $val)
-				{
-					if ($quote_attribute_function)
-						$key = $quote_attribute_function($key);
-					$writer->writeAttribute($key, is_object($val) ? $key : $val);
-				}
-				Tree::renderXML($writer, $element, $quote_function, $quote_attribute_function);
-				$writer->endElement();
-			}
-		}
-	}
 
 	public function toJSON()
 	{
@@ -275,7 +73,7 @@ class Tree extends Tree\Configurable
 	{
 		$tree_object = new Tree();
 		$tree_object->saveOptions()->setOptions($options);
-		$return = $tree_object->fromGenerator(Tree::fileGenerator($filename));
+		$return = $tree_object->fromGenerator(self::fileGenerator($filename));
 		$tree_object->restoreOptions();
 		return $return;
 	}
@@ -284,7 +82,7 @@ class Tree extends Tree\Configurable
 	{
 		$tree_object = new Tree();
 		$tree_object->saveOptions()->setOptions($options);
-		$return = $tree_object->fromGenerator(Tree::stringGenerator($string));
+		$return = $tree_object->fromGenerator(self::stringGenerator($string));
 		$tree_object->restoreOptions();
 		return $return;
 	}
@@ -297,7 +95,7 @@ class Tree extends Tree\Configurable
 
 	private static function semicolonGenerator($line)
 	{
-		while ($tree = Tree::match_Node($line))
+		while ($tree = self::match_Node($line))
 		{
 			yield $tree;
 			if (!isset($tree['trailingsemicolon']))
@@ -310,7 +108,7 @@ class Tree extends Tree\Configurable
 				if (($text = $LGML->match_Spaces()) && ($len = strlen($text['text'])))
 				{
 					list($exit, $line) = [
-							false, 
+							false,
 							substr($line, $len) 
 					];
 				}
@@ -339,9 +137,9 @@ class Tree extends Tree\Configurable
 			// @formatter:off
 			if (isset($arr['quoted']))
 				return array_key_exists('quotedcontents', $arr['quoted']) ? 
-					Tree::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
+					self::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
 					: 
-					Tree::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
+					self::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
 					;
 			// @formatter:on
 			return $arr['simple']['text'];
@@ -376,7 +174,7 @@ class Tree extends Tree\Configurable
 				else
 				{
 					$preparsed[] = [
-							'indent' => $dot, 
+							'indent' => $dot,
 							'text' => implode($le, $dot_inner) 
 					];
 					$dot = false;
@@ -393,7 +191,7 @@ class Tree extends Tree\Configurable
 				continue;
 			}
 			
-			foreach (Tree::semicolonGenerator($line) as $tree)
+			foreach (self::semicolonGenerator($line) as $tree)
 			{
 				if (!$tree)
 				{
@@ -402,10 +200,10 @@ class Tree extends Tree\Configurable
 				}
 				
 				$res = [
-						'indent' => $indent, 
-						'trailingtext' => @$tree['trailingtext']['text'], 
-						'trailingcomma' => @$tree['trailingcomma']['text'], 
-						'adefs' => [], 
+						'indent' => $indent,
+						'trailingtext' => @$tree['trailingtext']['text'],
+						'trailingcomma' => @$tree['trailingcomma']['text'],
+						'adefs' => [],
 						'orphandot' => @$tree['orphandot']['text'] 
 				];
 				
@@ -426,7 +224,7 @@ class Tree extends Tree\Configurable
 				foreach ($adefs as $adef)
 				{
 					$res['adefs'][] = [
-							parse_literal($adef['first']), 
+							parse_literal($adef['first']),
 							parse_literal(@$adef['second']) 
 					];
 				}
@@ -435,12 +233,12 @@ class Tree extends Tree\Configurable
 				{
 					if (!isset($tree['trailingcolontext']))
 						list($dot, $dot_inner) = [
-								$indent + 2, 
+								$indent + 2,
 								[] 
 						];
 					else
 						$preparsed[] = [
-								'indent' => $indent + 1, 
+								'indent' => $indent + 1,
 								'text' => parse_literal($tree['trailingcolontext']) 
 						];
 				}
@@ -448,7 +246,7 @@ class Tree extends Tree\Configurable
 		}
 		
 		// prepare real tree
-		$tree = Tree::node('!root');
+		$tree = self::node('!root');
 		$indents = [
 				-1 => &$tree 
 		];
@@ -477,12 +275,12 @@ class Tree extends Tree\Configurable
 				
 				if ($is_text)
 				{
-					$node = Tree::textNode($line['text']);
+					$node = self::textNode($line['text']);
 				}
 				else
 				{
 					$el = array_shift($line['adefs']);
-					$node = Tree::node($el[0]);
+					$node = self::node($el[0]);
 					foreach ($line['adefs'] as $adef)
 						push_attributes($node['attributes'], $adef);
 				}
@@ -500,7 +298,7 @@ class Tree extends Tree\Configurable
 			
 			if (isset($line['trailingtext']))
 			{
-				$current['inner'][] = Tree::textNode($line['trailingtext']);
+				$current['inner'][] = self::textNode($line['trailingtext']);
 			}
 		}
 		$this->tree = $tree;

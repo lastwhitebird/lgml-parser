@@ -9,13 +9,26 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	private $position = 0;
 	private $real = 0;
 
+	public static function textNode($text)
+	{
+		return self::node('!text', [
+				'#text' => $text 
+		]);
+	}
+
+	public static function node($element, $attributes = [], $inner = [])
+	{
+		$inner = (array) $inner;
+		return [
+				'element' => $element,
+				'attributes' => $attributes,
+				'inner' => $inner 
+		];
+	}
+
 	public function __construct()
 	{
-		$this->tree = [
-				'element' => '', 
-				'attributes' => [], 
-				'inner' => [] 
-		];
+		$this->tree = self::node('');
 	}
 
 	public static function factoryFromTree(array &$tree, $filter = false)
@@ -28,7 +41,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		$the->filter = $filter;
 		return $the;
 	}
-	
+
 	// iteration
 	function rewind()
 	{
@@ -41,7 +54,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	{
 		$class = get_class($this);
 		return call_user_func([
-				$class, 
+				$class,
 				'factoryFromTree' 
 		], [
 				&$this->tree['inner'][$this->real] 
@@ -85,7 +98,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	{
 		return isset($this->tree['inner'][$this->real]);
 	}
-	
+
 	// access
 	public function offsetExists($offset)
 	{
@@ -138,7 +151,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 				$inner = &$this->tree['inner'];
 				$real = $inner[$offset];
 				return call_user_func([
-						$class, 
+						$class,
 						'factoryFromTree' 
 				], [
 						&$this->tree['inner'][$offset] 
@@ -152,7 +165,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 					if ($cnt == $offset)
 					{
 						return call_user_func([
-								$class, 
+								$class,
 								'factoryFromTree' 
 						], [
 								&$el 
@@ -163,7 +176,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		}
 		else
 			return call_user_func([
-					$class, 
+					$class,
 					'factoryFromTree' 
 			], [
 					&$this->tree 

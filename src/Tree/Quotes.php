@@ -18,7 +18,7 @@ trait Quotes
 	public static function quoteProperly1($string)
 	{
 		return call_user_func([
-				__CLASS__, 
+				__CLASS__,
 				'quoteProperly' 
 		], $string, ' "\'"""\'"');
 	}
@@ -26,22 +26,36 @@ trait Quotes
 	public static function quoteProperly2($string)
 	{
 		return call_user_func([
-				__CLASS__, 
+				__CLASS__,
 				'quoteProperly' 
 		], $string, ' "\'" "\'"');
 	}
 
 	private static function quoteProperly($string, $code)
 	{
-		if (strpbrk($string, ",.:;") !== false)
-			$code = str_replace(' ', '"', $code);
 		if (!strlen($string))
 			return '""';
-		$num = strpos($string, "'") === false ? 0 : 1;
-		$num += strpos($string, '"') === false ? 0 : 2;
-		$num += strpos($string, ' ') === false ? 0 : 4;
-		$re1 = '/\\\\([\\\\"\\\\])/';
-		$re2 = '/\\\\([\\\'\\\\])/';
+		$forbidden = [
+				'.',
+				',',
+				':',
+				';',
+				'//',
+				'/*',
+				'*/' 
+		];
+		$occurences = array_map(function ($item) use ($string)
+		{
+			return strpos($string, $item) !== false;
+		}, $forbidden);
+		$occurence_met = array_reduce($occurences, function ($carry, $item)
+		{
+			return $carry || $item;
+		}, false);
+		$num = $occurence_met ? 1 : 0;
+		$num |= strpos($string, "'") === false ? 0 : 1;
+		$num |= strpos($string, '"') === false ? 0 : 2;
+		$num |= strpos($string, ' ') === false ? 0 : 4;
 		switch ($code[$num])
 		{
 			case '"':
@@ -76,7 +90,7 @@ trait Quotes
 					break;
 		}
 		return [
-				$count, 
+				$count,
 				substr($string, $chars) 
 		];
 	}
