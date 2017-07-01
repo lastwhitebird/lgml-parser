@@ -9,12 +9,13 @@ class Tree extends Tree\Configurable
 	use Tree\Quotes;
 	use Tree\InterchangeXML;
 	use Tree\InterchangeText;
-	
-	// serialize methods
 
+	// serialize methods
 	public function toJSON()
 	{
-		return json_encode($this->tree, JSON_PRETTY_PRINT);
+		$flags = 0;
+		$flags |= $this->getOption('pretty_print') ? JSON_PRETTY_PRINT : 0;
+		return json_encode($this->tree, $flags);
 	}
 
 	// factory methods
@@ -127,24 +128,24 @@ class Tree extends Tree\Configurable
 		}
 	}
 
+	public static function parse_literal($arr)
+	{
+		if ($arr === null)
+			return null;
+		// @formatter:off
+			if (isset($arr['quoted']))
+				return array_key_exists('quotedcontents', $arr['quoted']) ?
+				self::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
+				:
+				self::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
+				;
+		// @formatter:on
+		return $arr['simple']['text'];
+	}
+
 	public function fromGenerator($generator)
 	{
-
-		function parse_literal($arr)
-		{
-			if ($arr === null)
-				return null;
-			// @formatter:off
-			if (isset($arr['quoted']))
-				return array_key_exists('quotedcontents', $arr['quoted']) ? 
-					self::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
-					: 
-					self::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
-					;
-			// @formatter:on
-			return $arr['simple']['text'];
-		}
-		
+	
 		$preparsed = [];
 		$dot = false;
 		$comment = false;
@@ -224,8 +225,8 @@ class Tree extends Tree\Configurable
 				foreach ($adefs as $adef)
 				{
 					$res['adefs'][] = [
-							parse_literal($adef['first']),
-							parse_literal(@$adef['second']) 
+							self::parse_literal($adef['first']),
+							self::parse_literal(@$adef['second']) 
 					];
 				}
 				$preparsed[] = $res;
@@ -239,7 +240,7 @@ class Tree extends Tree\Configurable
 					else
 						$preparsed[] = [
 								'indent' => $indent + 1,
-								'text' => parse_literal($tree['trailingcolontext']) 
+								'text' => self::parse_literal($tree['trailingcolontext']) 
 						];
 				}
 			}

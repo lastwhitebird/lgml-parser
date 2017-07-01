@@ -6,7 +6,8 @@ class Configurable extends Basic
 {
 	public $options = [
 			'tabs' => 4, 
-			'line_ending' => "\n" 
+			'line_ending' => "\n",
+			'pretty_print' => true,
 	];
 	private $options_tack = [];
 

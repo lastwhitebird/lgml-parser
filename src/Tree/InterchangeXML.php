@@ -64,7 +64,8 @@ trait InterchangeXML
 	{
 		$writer = new \XMLWriter();
 		$writer->openMemory();
-		$writer->setIndentString("    ");
+		if( $this->getOption('pretty_print'))
+			$writer->setIndentString("    ");
 		$writer->setIndent(true);
 		$writer->startDocument('1.0', 'UTF-8', 'yes');
 		self::renderXML($writer, $this, $quote_function, $quote_attribute_function);
