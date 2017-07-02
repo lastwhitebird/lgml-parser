@@ -36,36 +36,42 @@ trait InterchangeXML
 							$tree['inner'][] = $nodestub;
 					}
 				if ($node->attributes && $node->attributes->length)
-				{
 					foreach ($node->attributes as $attrName => $attrNode)
-					{
 						$tree['attributes'][($attrNode->prefix ? $attrNode->prefix . ":" : "") . $attrName] = (string) $attrNode->value;
-					}
-				}
 				break;
 		}
+	}
+
+	private static function extract_xmldecl($string, $doc, &$nodes)
+	{
+		preg_match('/(<\?.*?\?>)/ism', $string, $ext);
+		if (isset($ext[1]))
+		{
+			$tree = self::node('?xml', [
+					'version' => $doc->xmlVersion,
+					'encoding' => $doc->encoding,
+					'standalone' => $doc->xmlStandalone ? 'yes' : 'no'
+			]);
+			$nodes[] = $tree;
+		}
+		return isset($ext[1]) ? $ext[1] : "";
 	}
 
 	public function fromXML($filename)
 	{
 		$nodes = [];
 		$XMLDecl = null;
-
-		function extract_xmldecl($string)
-		{
-			preg_match('/(<\?.*?\?>)/ism', $string, $ext);
-			return isset($ext[1]) ? $ext[1] : "";
-		}
 		
 		$string = file_get_contents($filename);
 		do
 		{
-			$again = false;
 			$tree = self::node('');
 			$doc = new \DOMDocument();
 			try
 			{
 				$doc->loadXML($string);
+				self::extract_xmldecl($string, $doc, $nodes);
+				$string = false;
 			}
 			catch (\ErrorException $e)
 			{
@@ -76,16 +82,19 @@ trait InterchangeXML
 					preg_match('/(?:.*?\n){' . ($err_line - 1) . '}/ism', $string, $ext);
 					$cut = strlen($ext[0]);
 					$temp_string = (!is_null($XMLDecl) ? $XMLDecl : "") . $ext[0];
-					//var_dump($temp_string);
+					// var_dump($temp_string);
 					$doc->loadXML($temp_string);
-					$XMLDecl = !is_null($XMLDecl) ? $XMLDecl : extract_xmldecl($string);
-					$again = true;
+					$XMLDecl = !is_null($XMLDecl) ? $XMLDecl : self::extract_xmldecl($string, $doc, $nodes);
 					$string = substr($string, $cut);
 				}
 			}
 			self::xml_traverse($doc->documentElement, $tree);
+			$xpath = new \DOMXPath($doc);
+			$context = $doc->documentElement;
+			foreach ($xpath->query('namespace::*', $context) as $node)
+				$tree['attributes'][$node->nodeName] = (string) $node->nodeValue;
 			$nodes[] = $tree;
-		} while ($again);
+		} while ($string);
 		$result = self::node('', [], $nodes);
 		// var_dump($result);
 		return self::factoryFromTree($result);
@@ -95,10 +104,17 @@ trait InterchangeXML
 	{
 		$writer = new \XMLWriter();
 		$writer->openMemory();
+		// Option: pretty_print
 		if ($this->getOption('pretty_print'))
+		{
 			$writer->setIndentString("    ");
-		$writer->setIndent(true);
-		$writer->startDocument('1.0', 'UTF-8', 'yes');
+			$writer->setIndent(true);
+		}
+		// Header
+		if (isset($this['?xml'][0]))
+			$writer->startDocument($this['?xml'][0]['@version'], $this['?xml'][0]['@encoding'], $this['?xml'][0]['@standalone']);
+		// TODO: !DOCTYPE
+		// Rendering
 		self::renderXML($writer, $this, $quote_function, $quote_attribute_function);
 		$writer->endDocument();
 		return $writer->outputMemory();
@@ -108,6 +124,8 @@ trait InterchangeXML
 	{
 		foreach ($tree as $element)
 		{
+			if ($element['@!element'] == '?xml')
+				continue;
 			if ($element['@!element'] == '!text')
 				$writer->text($element["@#text"]);
 			else
