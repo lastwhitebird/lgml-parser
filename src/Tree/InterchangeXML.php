@@ -50,7 +50,7 @@ trait InterchangeXML
 			$tree = self::node('?xml', [
 					'version' => $doc->xmlVersion,
 					'encoding' => $doc->encoding,
-					'standalone' => $doc->xmlStandalone ? 'yes' : 'no'
+					'standalone' => $doc->xmlStandalone ? 'yes' : 'no' 
 			]);
 			$nodes[] = $tree;
 		}

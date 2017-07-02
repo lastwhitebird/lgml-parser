@@ -15,13 +15,13 @@ trait InterchangeText
 		$count = 0;
 		foreach ($tree as $element)
 		{
-			if (count($element) == 0)
-				continue;
+			$count++;
 			if ($element['@!element'] == '!text' || count($element['@']))
 				return false;
+			if (count($element) == 0)
+				continue;
 			if (count($element) > 1 || $element[0]['@!element'] != '!text' || strpos($element[0]['@#text'], $le) !== false)
 				return false;
-			$count++;
 		}
 		return $count > 0;
 	}
