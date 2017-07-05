@@ -8,6 +8,7 @@ class Configurable extends Basic
 			'tabs' => 4, 
 			'line_ending' => "\n",
 			'pretty_print' => true,
+			'skip_xmlns_xml' => true,
 	];
 	private $options_tack = [];
 

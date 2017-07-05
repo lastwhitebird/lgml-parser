@@ -7,7 +7,7 @@ trait InterchangeText
 
 	public function __toString()
 	{
-		return self::render($this, $this->getOption('line_ending'));
+		return self::render($this, $this->options);
 	}
 
 	private static function checkSingleLineness($tree, $le)
@@ -20,10 +20,15 @@ trait InterchangeText
 				return false;
 			if (count($element) == 0)
 				continue;
-			if (count($element) > 1 || $element[0]['@!element'] != '!text' || strpos($element[0]['@#text'], $le) !== false)
+			if (count($element) > 1 || $element[0]['@!element'] != '!text' || !self::checkNoLEs($element[0]['@#text'], $le))
 				return false;
 		}
 		return $count > 0;
+	}
+
+	private static function checkNoLEs($string, $le)
+	{
+		return strpos($string, $le) === false;
 	}
 
 	private static function renderSingleLine($tree, $le, $level)
@@ -38,19 +43,27 @@ trait InterchangeText
 		}) . $le;
 	}
 
-	private static function render($tree, $le = "\n", $level = 0)
+	private static function render($tree, $options, $level = 0, $skiptext = false)
 	{
+		$le = $options['line_ending'];
 		$result = "";
 		foreach ($tree as $element)
 		{
+			if ($skiptext && $element['@!element'] == '!text')
+				continue;
 			$result .= str_repeat(' ', $level);
 			if ($element['@!element'] == '!text')
+			{
 				$result .= ". " . self::addIndent($level + 2, $element["@#text"]) . $le;
+			}
 			else
 			{
 				$result .= self::quoteProperly1($element['@!element']);
+				$skip_xmlns_xml = $options['skip_xmlns_xml'];
 				foreach ($element['@'] as $key => $val)
 				{
+					if ($skip_xmlns_xml && $key == "xmlns:xml")
+						continue;
 					$result .= ", " . self::quoteProperly1($key) . (is_object($val) ? "" : " " . self::quoteProperly2($val));
 				}
 				if (count($element) == 1 && $element[0]['@!element'] == '!text')
@@ -64,11 +77,19 @@ trait InterchangeText
 				}
 				else
 				{
-					$result .= $le;
 					if (!self::checkSingleLineness($element, $le))
-						$result .= self::render($element, $le, $level + 4);
+					{
+						$skiptext = count($element['!text']) == 1 && self::checkNoLEs($element['!text'][0]['@#text'], $le);
+						if ($skiptext)
+							$result .= ". " . $element['!text'][0]['@#text'];
+						$result .= $le;
+						$result .= self::render($element, $options, $level + 4, $skiptext);
+					}
 					else
+					{
+						$result .= $le;
 						$result .= self::renderSingleLine($element, $le, $level + 4);
+					}
 				}
 			}
 		}
