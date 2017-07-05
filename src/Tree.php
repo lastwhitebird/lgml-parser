@@ -96,12 +96,18 @@ class Tree extends Tree\Configurable
 
 	private static function semicolonGenerator($line)
 	{
+		$LGML = new LGML($line);
+		if ($LGML->match_OpenCommmentMLine())
+		{
+			yield false;
+			return;
+		}
 		while ($tree = self::match_Node($line))
 		{
 			yield $tree;
+			$line = substr($line, strlen($tree['text']));
 			if (!isset($tree['trailingsemicolon']))
 				break;
-			$line = substr($line, strlen($tree['text']));
 			do
 			{
 				$exit = true;
@@ -118,12 +124,12 @@ class Tree extends Tree\Configurable
 					$exit = false;
 					$line = substr($line, 1);
 				}
-			}
-			while (!$exit);
+			} while (!$exit);
 			$LGML = new LGML($line);
 			if ($LGML->match_OpenCommmentMLine())
 			{
 				yield false;
+				return;
 			}
 		}
 	}
@@ -145,7 +151,6 @@ class Tree extends Tree\Configurable
 
 	public function fromGenerator($generator)
 	{
-	
 		$preparsed = [];
 		$dot = false;
 		$comment = false;
