@@ -10,6 +10,8 @@ class Tree extends Tree\Configurable
 	use Tree\InterchangeXML;
 	use Tree\InterchangeText;
 
+	const PARSER_VERSION = "0.0.5a1";
+
 	// serialize methods
 	public function toJSON()
 	{

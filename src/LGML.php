@@ -850,43 +850,25 @@ function match_OpenCommmentMLine ($stack = array()) {
 }
 
 
-/* ClosingCommentMLine: /([^\*]|\*(?![\/]))* / cc:( "*" "/")  */
+/* ClosingCommentMLine: /([^\*]|\*(?![\/]))* / cc:ClosingComment  */
 protected $match_ClosingCommentMLine_typestack = array('ClosingCommentMLine');
 function match_ClosingCommentMLine ($stack = array()) {
 	$matchrule = "ClosingCommentMLine"; $result = $this->construct($matchrule, $matchrule, null);
-	$_149 = NULL;
+	$_146 = NULL;
 	do {
 		if (( $subres = $this->rx( '/([^\*]|\*(?![\/]))* /' ) ) !== FALSE) { $result["text"] .= $subres; }
-		else { $_149 = FALSE; break; }
-		$stack[] = $result; $result = $this->construct( $matchrule, "cc" ); 
-		$_147 = NULL;
-		do {
-			if (substr($this->string,$this->pos,1) == '*') {
-				$this->pos += 1;
-				$result["text"] .= '*';
-			}
-			else { $_147 = FALSE; break; }
-			if (substr($this->string,$this->pos,1) == '/') {
-				$this->pos += 1;
-				$result["text"] .= '/';
-			}
-			else { $_147 = FALSE; break; }
-			$_147 = TRUE; break;
+		else { $_146 = FALSE; break; }
+		$matcher = 'match_'.'ClosingComment'; $key = $matcher; $pos = $this->pos;
+		$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
+		if ($subres !== FALSE) {
+			$this->store( $result, $subres, "cc" );
 		}
-		while(0);
-		if( $_147 === TRUE ) {
-			$subres = $result; $result = array_pop($stack);
-			$this->store( $result, $subres, 'cc' );
-		}
-		if( $_147 === FALSE) {
-			$result = array_pop($stack);
-			$_149 = FALSE; break;
-		}
-		$_149 = TRUE; break;
+		else { $_146 = FALSE; break; }
+		$_146 = TRUE; break;
 	}
 	while(0);
-	if( $_149 === TRUE ) { return $this->finalise($result); }
-	if( $_149 === FALSE) { return FALSE; }
+	if( $_146 === TRUE ) { return $this->finalise($result); }
+	if( $_146 === FALSE) { return FALSE; }
 }
 
 
@@ -894,15 +876,15 @@ function match_ClosingCommentMLine ($stack = array()) {
 protected $match_IndentedDot_typestack = array('IndentedDot');
 function match_IndentedDot ($stack = array()) {
 	$matchrule = "IndentedDot"; $result = $this->construct($matchrule, $matchrule, null);
-	$_156 = NULL;
+	$_153 = NULL;
 	do {
 		$matcher = 'match_'.'Spaces'; $key = $matcher; $pos = $this->pos;
 		$subres = ( $this->packhas( $key, $pos ) ? $this->packread( $key, $pos ) : $this->packwrite( $key, $pos, $this->$matcher(array_merge($stack, array($result))) ) );
 		if ($subres !== FALSE) {
 			$this->store( $result, $subres, "indent" );
 		}
-		else { $_156 = FALSE; break; }
-		$_154 = NULL;
+		else { $_153 = FALSE; break; }
+		$_151 = NULL;
 		do {
 			$stack[] = $result; $result = $this->construct( $matchrule, "orphandot" ); 
 			if (( $subres = $this->rx( '/\.\s?/' ) ) !== FALSE) {
@@ -912,7 +894,7 @@ function match_IndentedDot ($stack = array()) {
 			}
 			else {
 				$result = array_pop($stack);
-				$_154 = FALSE; break;
+				$_151 = FALSE; break;
 			}
 			$stack[] = $result; $result = $this->construct( $matchrule, "trailingtext" ); 
 			if (( $subres = $this->rx( '/.* /' ) ) !== FALSE) {
@@ -922,17 +904,17 @@ function match_IndentedDot ($stack = array()) {
 			}
 			else {
 				$result = array_pop($stack);
-				$_154 = FALSE; break;
+				$_151 = FALSE; break;
 			}
-			$_154 = TRUE; break;
+			$_151 = TRUE; break;
 		}
 		while(0);
-		if( $_154 === FALSE) { $_156 = FALSE; break; }
-		$_156 = TRUE; break;
+		if( $_151 === FALSE) { $_153 = FALSE; break; }
+		$_153 = TRUE; break;
 	}
 	while(0);
-	if( $_156 === TRUE ) { return $this->finalise($result); }
-	if( $_156 === FALSE) { return FALSE; }
+	if( $_153 === TRUE ) { return $this->finalise($result); }
+	if( $_153 === FALSE) { return FALSE; }
 }
 
 
