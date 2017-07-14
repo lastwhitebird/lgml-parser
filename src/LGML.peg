@@ -1,0 +1,61 @@
+<?php
+
+namespace LWB\LGMLParser;
+use hafriedlander\Peg\Parser\Basic;
+
+class LGML extends Basic {
+
+/*!* LGML
+
+Node:		indent:Spaces 	(adef:Adef adefs:Adefs Spaces
+							(tc:TrailingComment
+							|(trailingdot:/\.\s?/ trailingtext:/.* /)
+							|(trailingcomma:"," Spaces (tc:TrailingComment)?)
+							|(trailingcolon:":" Spaces 
+								(tc:TrailingComment | trailingcolontext:Literal2)? 
+								(trailingsemicolon:";" (Spaces tc:TrailingComment)?)?
+							|(trailingsemicolon:";" (Spaces tc:TrailingComment)?)
+							|""
+							) 
+				) 
+
+
+Adef:		first:Literal Spaces &tc:TrailingComment | first:Literal (Spaces second:Literal2)?  
+
+Adefs:		(Spaces "," Spaces adef:Adef)* 
+
+
+Literal:	quoted:Quoted | simple:/([^\s\.,:;\/]|\/(?![\/\*]))+/  
+
+Literal2:	quoted:Quoted | simple:/([^\.,:;\/]|\/(?![\/\*]))+/  
+
+LiteralQuoted:	quoted:Quoted
+
+
+Spaces:		(/ \s /  |  ClosedComment)* 
+
+
+Quoted:		q:/["]/ quotedcontents:QuotedContents "$q" | q:/[']/ quotedcontents2:QuotedContents2 "$q" 
+
+QuotedContents:	( /\\.|[^"]/ )* 
+
+QuotedContents2:( /\\.|[^']/ )* 
+
+
+TrailingComment: (l1:Commment1Line /.* / ) | lm:OpenCommmentMLine 
+
+ClosingComment: cc:( "*" "/") 
+
+ClosedComment: OpenCommmentMLine ClosingComment 
+
+Commment1Line: "//" 
+
+OpenCommmentMLine: "/*" /([^\*]|\*(?![\/]))* /  
+
+ClosingCommentMLine: /([^\*]|\*(?![\/]))* / cc:ClosingComment 
+
+IndentedDot:	indent:Spaces (orphandot:/\.\s?/ trailingtext:/.* /) 
+
+*/
+
+}
