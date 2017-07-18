@@ -23,7 +23,7 @@ class Tree extends Tree\Configurable
 	// factory methods
 	public function fromJSON($string)
 	{
-		$this->tree = json_decode($string);
+		$this->tree = json_decode($string, true);
 		return $this;
 	}
 
