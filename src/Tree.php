@@ -261,12 +261,12 @@ class Tree extends Tree\Configurable
 		$awaiting_atts = false;
 		$current = &$tree;
 
-		function push_attributes(&$atts, $adefs)
+		$push_attributes=function (&$atts, $adefs)
 		{
 			if (!isset($adefs[1]))
 				$adefs[1] = new \stdClass();
 			$atts[$adefs[0]] = $adefs[1];
-		}
+		};
 		
 		foreach ($preparsed as $n => $line)
 		{
@@ -290,7 +290,7 @@ class Tree extends Tree\Configurable
 					$el = array_shift($line['adefs']);
 					$node = self::node($el[0]);
 					foreach ($line['adefs'] as $adef)
-						push_attributes($node['attributes'], $adef);
+						$push_attributes($node['attributes'], $adef);
 				}
 				$current['inner'][] = $node;
 				$indents[$i] = &$current['inner'][count($current['inner']) - 1];
@@ -299,7 +299,7 @@ class Tree extends Tree\Configurable
 			else
 			{
 				foreach ($line['adefs'] as $adef)
-					push_attributes($current['attributes'], $adef);
+					$push_attributes($current['attributes'], $adef);
 			}
 			
 			$awaiting_atts = isset($line['trailingcomma']) && !isset($line['trailingtext']);
