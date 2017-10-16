@@ -31,6 +31,15 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		$this->tree = self::node('');
 	}
 
+	public static function __set_state($state)
+	{
+		$class = get_called_class();
+		$the = new $class();
+		foreach ($state as $var => $val)
+			$the->$var = $val;
+		return $the;
+	}
+
 	public static function factoryFromTree(array &$tree, $filter = false)
 	{
 		$class = get_called_class();
@@ -77,8 +86,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 			do
 			{
 				++$this->real;
-			}
-			while ($this->valid() && $this->tree['inner'][$this->real]['element'] != $this->filter);
+			} while ($this->valid() && $this->tree['inner'][$this->real]['element'] != $this->filter);
 		}
 	}
 
