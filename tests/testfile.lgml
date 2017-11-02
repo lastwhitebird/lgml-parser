@@ -4,8 +4,8 @@ element-a, attribute
 element-a,    attribute .
 element-a, attribute non-empty
 element-a, attribute    "non-empty".
-element-t: imma textnodeh!;element-t: imma textnodeh!;
-element-nested
+element-t: imma textnodeh!;element-t: imma textnodeh!;/*imma comment*/
+/*element-nested
 	element-t: imma textnodeh!;element-t: imma textnodeh!;
 element-nested
 	/*element-t: imma textnodeh!;element-t: imma textnodeh!;*/
@@ -14,7 +14,7 @@ element-nested
 	qweqw
 	qwe*/
 element-nested
-	element-t: imma single-line comment//textnodeh!;element-t/*: imma textnodeh!;
+	element-t: imma single-line comment//textnodeh!;element-t/ *: imma textnodeh!;
 element-nested
 	element-t: imma textnodeh!;element-t: imma textnodeh!;
 "nested element with a complex name",

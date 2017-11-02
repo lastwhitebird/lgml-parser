@@ -50,7 +50,7 @@ ClosedComment: OpenCommmentMLine ClosingComment
 
 Commment1Line: "//" 
 
-OpenCommmentMLine: "/*" /([^\*]|\*(?![\/]))* /  
+OpenCommmentMLine: "/*" /([^\*]|\*(?![\/]))*$/  
 
 ClosingCommentMLine: /([^\*]|\*(?![\/]))* / cc:ClosingComment 
 

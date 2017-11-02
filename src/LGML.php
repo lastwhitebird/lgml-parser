@@ -832,7 +832,7 @@ function match_Commment1Line ($stack = array()) {
 }
 
 
-/* OpenCommmentMLine: "/*" /([^\*]|\*(?![\/]))* /   */
+/* OpenCommmentMLine: "/*" /([^\*]|\*(?![\/]))*$/   */
 protected $match_OpenCommmentMLine_typestack = array('OpenCommmentMLine');
 function match_OpenCommmentMLine ($stack = array()) {
 	$matchrule = "OpenCommmentMLine"; $result = $this->construct($matchrule, $matchrule, null);
@@ -840,7 +840,7 @@ function match_OpenCommmentMLine ($stack = array()) {
 	do {
 		if (( $subres = $this->literal( '/*' ) ) !== FALSE) { $result["text"] .= $subres; }
 		else { $_142 = FALSE; break; }
-		if (( $subres = $this->rx( '/([^\*]|\*(?![\/]))* /' ) ) !== FALSE) { $result["text"] .= $subres; }
+		if (( $subres = $this->rx( '/([^\*]|\*(?![\/]))*$/' ) ) !== FALSE) { $result["text"] .= $subres; }
 		else { $_142 = FALSE; break; }
 		$_142 = TRUE; break;
 	}
