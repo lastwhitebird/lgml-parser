@@ -111,6 +111,21 @@ class Tree extends Tree\Configurable
 		return self::match($line);
 	}
 
+	public static function parse_literal($arr)
+	{
+		if ($arr === null)
+			return null;
+		// @formatter:off
+			if (isset($arr['quoted']))
+				return array_key_exists('quotedcontents', $arr['quoted']) ?
+				self::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
+				:
+				self::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
+				;
+				// @formatter:on
+		return $arr['simple']['text'];
+	}
+
 	private static function semicolonGenerator($line)
 	{
 		if (self::match($line, 'OpenCommmentMLine'))
@@ -118,11 +133,16 @@ class Tree extends Tree\Configurable
 			yield false;
 			return;
 		}
+		$indent = 0;
 		while ($tree = self::match_Node($line))
 		{
-			yield $tree;
+			yield [
+					$indent,
+					$tree 
+			];
+			$indent = isset($tree['trailingslash']) ? 4 : 0;
 			$line = substr($line, strlen($tree['text']));
-			if (!isset($tree['trailingsemicolon']))
+			if (!isset($tree['trailingsemicolon']) && !isset($tree['trailingslash']))
 				break;
 			do
 			{
@@ -148,21 +168,6 @@ class Tree extends Tree\Configurable
 				return;
 			}
 		}
-	}
-
-	public static function parse_literal($arr)
-	{
-		if ($arr === null)
-			return null;
-		// @formatter:off
-			if (isset($arr['quoted']))
-				return array_key_exists('quotedcontents', $arr['quoted']) ?
-				self::unEscapeDoubleQuotes($arr['quoted']['quotedcontents']['text'])
-				:
-				self::unEscapeSingleQuotes($arr['quoted']['quotedcontents2']['text'])
-				;
-		// @formatter:on
-		return $arr['simple']['text'];
 	}
 
 	public function fromGenerator($generator)
@@ -211,8 +216,10 @@ class Tree extends Tree\Configurable
 				continue;
 			}
 			
-			foreach (self::semicolonGenerator($line) as $tree)
+			foreach (self::semicolonGenerator($line) as $tree_array)
 			{
+				list($semicolon_indent, $tree) = $tree_array;
+				$indent += $semicolon_indent;
 				if (!$tree)
 				{
 					$comment = true;

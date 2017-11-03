@@ -13,8 +13,12 @@ Node:		indent:Spaces 	(adef:Adef adefs:Adefs Spaces
 							|(trailingcomma:"," Spaces (tc:TrailingComment)?)
 							|(trailingcolon:":" Spaces 
 								(tc:TrailingComment | trailingcolontext:Literal2)? 
-								(trailingsemicolon:";" (Spaces tc:TrailingComment)?)?
+								(
+									(trailingsemicolon:";" (Spaces tc:TrailingComment)?)?
+									|(trailingslash:"/" (Spaces tc:TrailingComment)?)?
+								)
 							|(trailingsemicolon:";" (Spaces tc:TrailingComment)?)
+							|(trailingslash:"/" (Spaces tc:TrailingComment)?)
 							|""
 							) 
 				) 
@@ -25,9 +29,9 @@ Adef:		first:Literal Spaces &tc:TrailingComment | first:Literal (Spaces second:L
 Adefs:		(Spaces "," Spaces adef:Adef)* 
 
 
-Literal:	quoted:Quoted | simple:/([^\s\.,:;\/]|\/(?![\/\*]))+/  
+Literal:	quoted:Quoted | simple:/([^\s\.,:;\/])+/  
 
-Literal2:	quoted:Quoted | simple:/([^\.,:;\/]|\/(?![\/\*]))+/  
+Literal2:	quoted:Quoted | simple:/([^\.,:;\/])+/  
 
 LiteralQuoted:	quoted:Quoted
 

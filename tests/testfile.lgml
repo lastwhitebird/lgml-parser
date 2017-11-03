@@ -20,6 +20,7 @@ element-nested
 "nested element with a complex name",
 	"and so with attributes" yes, "it is"
 	#include. include.lgml
+element-nested / this-should-be-nested; this-on-same-lvl / and-even-more
 /*"you don't see me"
 	element-t: imma textnodeh!;element-t: imma textnodeh!;
 	*/
