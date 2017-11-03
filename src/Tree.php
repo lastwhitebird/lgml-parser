@@ -27,6 +27,15 @@ class Tree extends Tree\Configurable
 		return $this;
 	}
 
+	public function walk($callback, &$node = null, &$parent = null)
+	{
+		if (!$node)
+			$node = &$this->tree;
+		$callback($node, $parent);
+		foreach ($node['inner'] as &$element)
+			$this->walk($callback, $element, $node);
+	}
+
 	private static function fileGenerator($filename)
 	{
 		$handle = fopen($filename, "r");
@@ -90,16 +99,21 @@ class Tree extends Tree\Configurable
 		return $return;
 	}
 
-	public static function match_Node($line)
+	public static function match($line, $token = 'Node')
 	{
 		$LGML = new LGML($line);
-		return $LGML->match_Node();
+		$method = "match_$token";
+		return $LGML->$method();
+	}
+
+	public static function match_Node($line)
+	{
+		return self::match($line);
 	}
 
 	private static function semicolonGenerator($line)
 	{
-		$LGML = new LGML($line);
-		if ($LGML->match_OpenCommmentMLine())
+		if (self::match($line, 'OpenCommmentMLine'))
 		{
 			yield false;
 			return;
@@ -112,23 +126,23 @@ class Tree extends Tree\Configurable
 				break;
 			do
 			{
-				$exit = true;
-				$LGML = new LGML($line);
-				if (($text = $LGML->match_Spaces()) && ($len = strlen($text['text'])))
+				$again = false;
+				if (($text = self::match($line, 'Spaces')) && ($len = strlen($text['text'])))
 				{
-					list($exit, $line) = [
-							false,
+					list($again, $line) = [
+							true,
 							substr($line, $len) 
 					];
 				}
 				while (strlen($line) && ($line[0] == ';'))
 				{
-					$exit = false;
-					$line = substr($line, 1);
+					list($again, $line) = [
+							true,
+							substr($line, 1) 
+					];
 				}
-			} while (!$exit);
-			$LGML = new LGML($line);
-			if ($LGML->match_OpenCommmentMLine())
+			} while ($again);
+			if (self::match($line, 'OpenCommmentMLine'))
 			{
 				yield false;
 				return;
@@ -162,8 +176,7 @@ class Tree extends Tree\Configurable
 		{
 			if ($comment)
 			{
-				$LGML = new LGML($line);
-				if (!$tree = $LGML->match_ClosingCommentMLine())
+				if (!$tree = self::match($line, 'ClosingCommentMLine'))
 					continue;
 				$len = strlen($tree['text']);
 				$line = str_repeat(' ', $len) . substr($line, $len);
@@ -189,8 +202,7 @@ class Tree extends Tree\Configurable
 				}
 			}
 			
-			$LGML = new LGML($line);
-			if ($dot === false && ($tree = $LGML->match_IndentedDot()))
+			if ($dot === false && ($tree = self::match($line, 'IndentedDot')))
 			{
 				$dot = $indent;
 				$dot_inner = [
@@ -260,8 +272,8 @@ class Tree extends Tree\Configurable
 		];
 		$awaiting_atts = false;
 		$current = &$tree;
-
-		$push_attributes=function (&$atts, $adefs)
+		
+		$push_attributes = function (&$atts, $adefs)
 		{
 			if (!isset($adefs[1]))
 				$adefs[1] = new \stdClass();
