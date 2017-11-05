@@ -16,7 +16,7 @@ Node:		indent:Spaces 	(adef:Adef adefs:Adefs Spaces
 								(
 									(trailingsemicolon:";" (Spaces tc:TrailingComment)?)?
 									|(trailingslash:"/" (Spaces tc:TrailingComment)?)?
-								)
+								)?
 							|(trailingsemicolon:";" (Spaces tc:TrailingComment)?)
 							|(trailingslash:"/" (Spaces tc:TrailingComment)?)
 							|""

@@ -225,7 +225,7 @@ class Tree extends Tree\Configurable
 					$comment = true;
 					break;
 				}
-				
+
 				$res = [
 						'indent' => $indent,
 						'trailingtext' => @$tree['trailingtext']['text'],

@@ -12,9 +12,9 @@ class LGML extends Basic {
 							|(trailingcolon:":" Spaces 
 								(tc:TrailingComment | trailingcolontext:Literal2)? 
 								(
-									(trailingsemicolon:";" (Spaces tc:TrailingComment)?)?
-									|(trailingslash:"/" (Spaces tc:TrailingComment)?)?
-								)
+									(trailingsemicolon:";" (Spaces tc:TrailingComment)?)
+									|(trailingslash:"/" (Spaces tc:TrailingComment)?)
+								)?
 							|(trailingsemicolon:";" (Spaces tc:TrailingComment)?)
 							|(trailingslash:"/" (Spaces tc:TrailingComment)?)
 							|""
@@ -205,14 +205,14 @@ function match_Node ($stack = array()) {
 											unset( $res_28 );
 											unset( $pos_28 );
 										}
+										$res_47 = $result;
+										$pos_47 = $this->pos;
 										$_46 = NULL;
 										do {
 											$_44 = NULL;
 											do {
 												$res_29 = $result;
 												$pos_29 = $this->pos;
-												$res_36 = $result;
-												$pos_36 = $this->pos;
 												$_35 = NULL;
 												do {
 													$stack[] = $result; $result = $this->construct( $matchrule, "trailingsemicolon" ); 
@@ -255,16 +255,8 @@ function match_Node ($stack = array()) {
 												}
 												while(0);
 												if( $_35 === TRUE ) { $_44 = TRUE; break; }
-												if( $_35 === FALSE) {
-													$result = $res_36;
-													$this->pos = $pos_36;
-													unset( $res_36 );
-													unset( $pos_36 );
-												}
 												$result = $res_29;
 												$this->pos = $pos_29;
-												$res_43 = $result;
-												$pos_43 = $this->pos;
 												$_42 = NULL;
 												do {
 													$stack[] = $result; $result = $this->construct( $matchrule, "trailingslash" ); 
@@ -307,12 +299,6 @@ function match_Node ($stack = array()) {
 												}
 												while(0);
 												if( $_42 === TRUE ) { $_44 = TRUE; break; }
-												if( $_42 === FALSE) {
-													$result = $res_43;
-													$this->pos = $pos_43;
-													unset( $res_43 );
-													unset( $pos_43 );
-												}
 												$result = $res_29;
 												$this->pos = $pos_29;
 												$_44 = FALSE; break;
@@ -322,7 +308,12 @@ function match_Node ($stack = array()) {
 											$_46 = TRUE; break;
 										}
 										while(0);
-										if( $_46 === FALSE) { $_48 = FALSE; break; }
+										if( $_46 === FALSE) {
+											$result = $res_47;
+											$this->pos = $pos_47;
+											unset( $res_47 );
+											unset( $pos_47 );
+										}
 										$_48 = TRUE; break;
 									}
 									while(0);
