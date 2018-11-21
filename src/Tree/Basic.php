@@ -12,7 +12,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	public static function textNode($text)
 	{
 		return self::node('!text', [
-				'#text' => $text 
+				'#text' => $text
 		]);
 	}
 
@@ -22,7 +22,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		return [
 				'element' => $element,
 				'attributes' => $attributes,
-				'inner' => $inner 
+				'inner' => $inner
 		];
 	}
 
@@ -62,11 +62,11 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	function current()
 	{
 		$class = get_class($this);
-		return call_user_func([
+		return call_user_func_array([
 				$class,
-				'factoryFromTree' 
+				'factoryFromTree'
 		], [
-				&$this->tree['inner'][$this->real] 
+				&$this->tree['inner'][$this->real]
 		]);
 	}
 
@@ -78,7 +78,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	function next()
 	{
 		++$this->position;
-		
+
 		if (!$this->filter)
 			++$this->real;
 		else
@@ -94,7 +94,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	{
 		if (!$this->filter)
 			return count($this->tree['inner']);
-		
+
 		$cnt = 0;
 		foreach ($this->tree['inner'] as $el)
 			if ($el['element'] == $this->filter)
@@ -113,7 +113,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		if ($offset[0] == "@")
 		{
 			$offset = substr($offset, 1);
-			if ($offset === false)
+			if ($offset === '')
 				return true;
 			else
 				return isset($this->tree['attributes'][$offset]);
@@ -122,7 +122,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		{
 			if (!$this->filter)
 				return isset($this->tree['inner'][$offset]);
-			
+
 			$cnt = -1;
 			foreach ($this->tree['inner'] as $el)
 				if ($el['element'] == $this->filter)
@@ -144,7 +144,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 			if ($offset == "@!element")
 				return $this->tree['element'];
 			$offset = substr($offset, 1);
-			if ($offset === false)
+			if ($offset === '')
 			{
 				return $this->tree['attributes'];
 			}
@@ -158,11 +158,11 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 			{
 				$inner = &$this->tree['inner'];
 				$real = $inner[$offset];
-				return call_user_func([
+				return call_user_func_array([
 						$class,
-						'factoryFromTree' 
+						'factoryFromTree'
 				], [
-						&$this->tree['inner'][$offset] 
+						&$this->tree['inner'][$offset]
 				]);
 			}
 			$cnt = -1;
@@ -172,23 +172,29 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 					++$cnt;
 					if ($cnt == $offset)
 					{
-						return call_user_func([
+						return call_user_func_array([
 								$class,
-								'factoryFromTree' 
+								'factoryFromTree'
 						], [
-								&$el 
+								&$el
 						]);
 					}
 				}
 			return null;
 		}
 		else
-			return call_user_func([
+
+		{
+			$tree = &$this->tree;
+
+			return call_user_func_array([
 					$class,
-					'factoryFromTree' 
+					'factoryFromTree'
 			], [
-					&$this->tree 
-			], $offset);
+					&$this->tree,
+					$offset
+			]);
+		}
 	}
 
 	public function offsetSet($offset, $value)
