@@ -110,7 +110,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 	// access
 	public function offsetExists($offset)
 	{
-		if ($offset[0] == "@")
+		if (((string)$offset)[0] == "@")
 		{
 			$offset = substr($offset, 1);
 			if ($offset === '')
@@ -139,7 +139,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 
 	public function offsetGet($offset)
 	{
-		if ($offset[0] == "@")
+		if (((string)$offset)[0] == "@")
 		{
 			if ($offset == "@!element")
 				return $this->tree['element'];
