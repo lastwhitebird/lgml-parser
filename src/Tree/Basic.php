@@ -59,6 +59,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		$this->next();
 	}
 
+	#[\ReturnTypeWillChange]
 	function current()
 	{
 		$class = get_class($this);
@@ -70,6 +71,7 @@ class Basic implements \Iterator, \ArrayAccess, \Countable
 		]);
 	}
 
+	#[\ReturnTypeWillChange]
 	function key()
 	{
 		return $this->position;
